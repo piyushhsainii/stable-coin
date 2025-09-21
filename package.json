@@ -1,0 +1,42 @@
+{
+  "name": "stable_coin",
+  "version": "1.0.0",
+  "description": "A decentralized stablecoin protocol built on the **Solana blockchain**.  \r Users deposit **SOL** as collateral and mint a **USD-pegged stablecoin** against it.  \r The protocol ensures peg stability using overcollateralization, oracle-based pricing, and liquidation mechanisms.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "module",
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "outDir": "dist"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@pythnetwork/price-service-client": "^1.9.0",
+    "@pythnetwork/pyth-solana-receiver": "^0.12.0",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
+    "@types/mocha": "^10.0.10",
+    "anchor": "coral-xyz/anchor",
+    "anchor-bankrun": "^0.5.0",
+    "bun": "^1.2.22",
+    "chai": "^6.0.1",
+    "mocha": "^11.7.2",
+    "rpc-websockets": "7.11.0",
+    "solana-bankrun": "^0.4.0",
+    "spl-token-bankrun": "^0.2.6",
+    "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
