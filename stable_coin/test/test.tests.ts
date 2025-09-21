@@ -1,15 +1,11 @@
 import { before, describe, it } from "node:test";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { clusterApiUrl } from "@solana/web3.js";
-import { BankrunProvider, startAnchor } from "anchor-bankrun";
-import { BankrunContextWrapper } from "./fixtures/bankRunContextWrapper.ts";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-// @ts-ignore
 import {
   createAssociatedTokenAccount,
   createMint,
   mintTo,
-  TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import pkg from "@coral-xyz/anchor";
 import type { Program as ProgramType } from "@coral-xyz/anchor";
@@ -17,7 +13,6 @@ const { BN, Program } = pkg;
 import type { StableCoin } from ".././target/types/stable_coin.ts";
 import { Keypair } from "@solana/web3.js";
 import { Transaction } from "@solana/web3.js";
-import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet.js";
 
 const IDL = {
   address: "GcpT65KNE5vyyikJNP1MrtWGF6uD7uKkRdN5h4ke2cNe",
@@ -240,28 +235,7 @@ describe("testing pyth", () => {
         console.log(solAccInfo);
         throw new Error(`Account ${sol_usdc_address} does not exist`);
       }
-
-      console.log("3️⃣ Starting Anchor...");
-      // const anchor = await startAnchor(
-      //   "./stable_coin/",
-      //   [
-      //     {
-      //       name: IDL.metadata.name,
-      //       programId: new PublicKey(IDL.address),
-      //     },
-      //   ],
-      //   [
-      //     {
-      //       info: solAccInfo,
-      //       address: new PublicKey(sol_usdc_address),
-      //     },
-      //   ]
-      // );
-
       console.log("4️⃣ Setting up BankrunProvider & Context...");
-      // const bankrunProvider = new BankrunProvider(anchor);
-      // const bankrunContext = new BankrunContextWrapper(anchor);
-      // bankrunContext.connection.toConnection();
 
       const keypair = Keypair.fromSecretKey(
         Buffer.from([

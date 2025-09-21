@@ -5,14 +5,14 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-stable_coin = "GcpT65KNE5vyyikJNP1MrtWGF6uD7uKkRdN5h4ke2cNe"
+stable_coin = "BDpeVzSYtJJPNq5s9HvRn74BnjPhV4B3XcWEFrYW5BT4"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
-wallet = '../my-keypair.json'
+cluster = "devnet"
+wallet = "../my-keypair.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 ./stable_coin/test/test.tests.ts"

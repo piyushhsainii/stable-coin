@@ -19,10 +19,10 @@ pub struct Config {
 pub struct Collateral {
     pub depositer:Pubkey,
     pub sol_account:Pubkey,
+    pub coin_token_account:Pubkey,
     pub is_initialized:bool,
     pub lamports:u64,
     pub coins:u64,
-    pub coin_token_account:u64,
     pub bump:u8,
     pub bump_sol_account:u8
 }
