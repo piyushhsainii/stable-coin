@@ -1,7 +1,8 @@
 use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
-use crate::{integer_usd_from_pyth, lamports_to_usd, mint_tokens, state::{Collateral, Config}, SOL_USDC_FEED_ID};
+use crate::{calculate_health_factor, error::ErrorCode, integer_usd_from_pyth, lamports_to_usd, mint_tokens, state::{Collateral, Config}, SOL_USDC_FEED_ID};
+
 
 #[derive(Accounts)]
 pub struct InitDeposit<'info> {
@@ -10,7 +11,7 @@ pub struct InitDeposit<'info> {
     #[account(
         init_if_needed,
         payer=depositer,
-        seeds=[b"collateral"],
+        seeds=[b"collateral", depositer.key().as_ref()],
         space= 8 + Collateral::INIT_SPACE,
         bump
     )]
@@ -73,7 +74,7 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
    // 3. Get USD equivalent of the provided sol
    let feed_id = get_feed_id_from_hex(SOL_USDC_FEED_ID)?;
    let clock = &mut Clock::get()?;
-   let usd =  pyth.get_price_no_older_than(&clock, 12000, &feed_id)?;
+   let usd =  pyth.get_price_no_older_than(&clock, 100, &feed_id)?;
 
    msg!("price price:{}",usd.price);
    msg!("price exponent:{}",usd.exponent);
@@ -84,7 +85,17 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
    let usd_amount = integer_usd_from_pyth(usd.price, usd.exponent);
    msg!("usd amount:{}",usd_amount);
    let token_amt = lamports_to_usd(amount,usd_amount as u64)?;
-   // 4. mint tokens to the user
+
+  //4.Checking HF to ensure safety.
+    let new_collateral_amount = collateral.lamports.checked_add(amount).unwrap();
+    let new_collateral_in_usd = lamports_to_usd(new_collateral_amount, usd_amount as u64)?;
+
+   let health_factor = calculate_health_factor(collateral.coins, new_collateral_in_usd, config.liq_thx);
+
+   if health_factor <= 0 {
+        return Err(ErrorCode::HealthFactorError.into());
+   }
+   // 5. mint tokens to the user
    mint_tokens(
         &mut ctx.accounts.depositer_token_account,
          &mut ctx.accounts.token_program_2022,
@@ -93,7 +104,7 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
         token_amt
     )?;
    
-   // 5. Updating user state
+   // 6. Updating user state
    collateral.coins = collateral.coins.checked_add(token_amt).unwrap();
    collateral.lamports =  collateral.lamports.checked_add(amount).unwrap();
     Ok(())

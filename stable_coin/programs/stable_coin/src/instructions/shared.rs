@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token_2022::{ mint_to, MintTo }, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{token_2022::{ burn, mint_to, Burn, MintTo }, token_interface::{Mint, TokenAccount, TokenInterface}};
 
 use crate::MINTSEED;
 
@@ -47,4 +47,48 @@ pub fn lamports_to_usd<'info>(
 ) -> Result<(u64)>{
     let token_amount = lamports.checked_mul(usd).unwrap().checked_div(1000000000).unwrap();
     Ok(token_amount)
+}
+
+pub fn usd_to_lamports<'info>(
+    usd_amount:u64,
+    usd_per_sol:u64
+)-> Result<u64>{
+     let lamports = usd_amount.checked_mul(1000000000).unwrap().checked_div(usd_per_sol).unwrap();
+     Ok((lamports))
+}
+
+
+pub fn calculate_health_factor<'info>(
+  borrowed_amt:u64,
+  collateral_amount_in_usd:u64,
+  max_lts:u64
+) -> u64 {
+    if borrowed_amt == 0 {
+        ((1));
+    }
+    let new_health_factor = collateral_amount_in_usd.checked_mul(max_lts).unwrap().checked_div(borrowed_amt).unwrap().checked_div(10000).unwrap();
+
+    new_health_factor
+}
+
+pub fn burn_tokens<'info>(
+    mint:&InterfaceAccount<'info,Mint>,
+    token_program:&Interface<'info, TokenInterface>,
+    mint_bump:u8,
+    user:&InterfaceAccount<'info, TokenAccount>,
+    amount:u64
+){
+    let signer_seeds: &[&[&[u8]]] = &[&[MINTSEED, &[mint_bump]]];
+
+    let ctx = CpiContext::new_with_signer(
+        token_program.to_account_info(),
+         Burn{
+            authority:mint.to_account_info(),
+            mint:mint.to_account_info(),
+            from:user.to_account_info(),
+         }, 
+        signer_seeds
+    );
+    burn(ctx, amount);
+
 }
