@@ -16,14 +16,16 @@ pub struct InitDeposit<'info> {
         bump
     )]
     pub collateral_account:Account<'info,Collateral>,
+    /// SAFETY: This account is only used as a recipient for SOL transfers. 
+/// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
     #[account(
         init_if_needed,
         payer=depositer,
         seeds=[b"collateral_token_account",depositer.key().as_ref()],
-        space= 8,
+        space=0,
         bump
     )]
-    pub sol_token_account:InterfaceAccount<'info,TokenAccount>,
+    pub sol_token_account: AccountInfo<'info>,
     #[account(
         init_if_needed,
         payer=depositer,
@@ -106,6 +108,6 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
    
    // 6. Updating user state
    collateral.coins = collateral.coins.checked_add(token_amt).unwrap();
-   collateral.lamports =  collateral.lamports.checked_add(amount).unwrap();
+   collateral.lamports = collateral.lamports.checked_add(amount).unwrap();
     Ok(())
 }

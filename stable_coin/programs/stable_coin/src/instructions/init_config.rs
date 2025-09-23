@@ -25,7 +25,8 @@ pub fn process_config(
     liq_bonus:u64,
     min_health_factor:u64,
     bump:u8,
-    bump_mint_acc:u8
+    bump_mint_acc:u8,
+    close_factor:u64
 ) -> Result<()> {
 
     let config_account = &mut ctx.accounts.config;
@@ -37,7 +38,8 @@ pub fn process_config(
         liq_bonus: liq_bonus,
         min_health_factor: min_health_factor,
         bump: bump,
-        bump_mint_acc: bump_mint_acc
+        bump_mint_acc: bump_mint_acc,
+        close_factor:close_factor
      });
     
     Ok(())

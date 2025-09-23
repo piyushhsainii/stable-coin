@@ -20,7 +20,20 @@ pub struct WithdrawBurn<'info>{
         bump
     )]
     pub config:Account<'info,Config>,
+    #[account(
+        mut,
+        seeds=[b"mint_token_account",withdrawer.key().as_ref()],
+        bump
+    )]
     pub withdraw_collateral_token_account:InterfaceAccount<'info, TokenAccount>,
+    /// SAFETY: This account is only used as a recipient for SOL transfers. 
+/// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
+    #[account(
+        mut,
+        seeds=[b"collateral_token_account",withdrawer.key().as_ref()],
+        bump
+    )]
+    pub withdraw_sol_account: AccountInfo<'info>,
     pub mint:InterfaceAccount<'info,Mint>,
     pub price_update:Account<'info,PriceUpdateV2>,
     pub token_program:Interface<'info, TokenInterface>,
@@ -35,6 +48,7 @@ pub struct WithdrawBurn<'info>{
 pub fn withdraw_burn(ctx:Context<WithdrawBurn>, withdraw_amount:u64)-> Result<()> {
 
     let collateral_account = &mut ctx.accounts.withdrawer_collateral_account;
+    let sol_account = &mut ctx.accounts.withdraw_sol_account;
     let collateral_token_acc = &mut  ctx.accounts.withdraw_collateral_token_account;
     let price = &mut ctx.accounts.price_update;
     let config = &mut ctx.accounts.config;
@@ -79,7 +93,7 @@ pub fn withdraw_burn(ctx:Context<WithdrawBurn>, withdraw_amount:u64)-> Result<()
     // Transfer the equivalent collateral back to the user
     let context = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),Transfer {
-        from:ctx.accounts.withdraw_collateral_token_account.to_account_info(),
+        from:ctx.accounts.withdraw_sol_account.to_account_info(),
         to:ctx.accounts.withdrawer.to_account_info()
     });
 

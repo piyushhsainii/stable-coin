@@ -6,5 +6,7 @@ pub enum ErrorCode {
     CustomError,
     #[msg("Account not healthy")]
     HealthFactorError,
+    #[msg("Cannot Liquidate more than the close factor")]
+    MaxLiquidationAmount,
 }
 

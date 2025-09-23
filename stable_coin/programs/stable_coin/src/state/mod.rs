@@ -9,6 +9,7 @@ pub struct Config {
     pub liq_thx:u64,
     pub liq_bonus:u64,
     pub min_health_factor:u64,
+    pub close_factor:u64,
     pub bump:u8,
     pub bump_mint_acc:u8,
 }

@@ -214,6 +214,7 @@ describe("testing pyth", () => {
   let connection: Connection;
   let TOKEN: number;
   let SOL_TO_USDC_ACCOUNT: PublicKey;
+
   // pyth account setup
   before(async () => {
     try {
@@ -314,27 +315,55 @@ describe("testing pyth", () => {
     }
   });
 
-  it("check pyth", async () => {
+  const MINT = "FG5cGLC36PEnoGpGoMZb2QUzt85qdMkzAjL1iempoB4n";
+
+  const keypair = Keypair.fromSecretKey(
+    Buffer.from([
+      166, 160, 12, 30, 7, 151, 84, 30, 126, 243, 245, 247, 103, 160, 15, 47,
+      100, 225, 60, 167, 105, 45, 195, 252, 250, 68, 29, 232, 243, 177, 13, 142,
+      221, 232, 165, 191, 3, 25, 163, 237, 14, 42, 190, 72, 161, 12, 46, 34,
+      167, 233, 159, 138, 235, 114, 141, 137, 79, 96, 73, 100, 141, 107, 208,
+      154,
+    ])
+  );
+  const signer = keypair;
+
+  it("initializing config account", async () => {
+    console.log(`Initializing Config Account`);
+    // @ts-ignore
+    const program: ProgramType<StableCoin> = new Program(IDL, {
+      connection,
+    });
+
+    let ix = await program.methods
+      .processConfig(
+        signer.publicKey,
+        new PublicKey(MINT),
+        new BN(8000),
+        new BN(500),
+        new BN(1500),
+        new BN(1)
+      )
+      .accounts({
+        admin: signer.publicKey,
+      });
+  });
+
+  it("testing deposit and mint", async () => {
     console.log("hitting");
     // @ts-ignore
     const program: ProgramType<StableCoin> = new Program(IDL, {
       connection,
     });
     try {
-      const keypair = Keypair.fromSecretKey(
-        Buffer.from([
-          166, 160, 12, 30, 7, 151, 84, 30, 126, 243, 245, 247, 103, 160, 15,
-          47, 100, 225, 60, 167, 105, 45, 195, 252, 250, 68, 29, 232, 243, 177,
-          13, 142, 221, 232, 165, 191, 3, 25, 163, 237, 14, 42, 190, 72, 161,
-          12, 46, 34, 167, 233, 159, 138, 235, 114, 141, 137, 79, 96, 73, 100,
-          141, 107, 208, 154,
-        ])
-      );
-      const signer = keypair;
       const ix = await program.methods
-        .deposit(new BN(TOKEN))
+        .depositAndMintTokens(new BN(TOKEN))
         .accounts({
           priceUpdate: SOL_TO_USDC_ACCOUNT,
+          config,
+          mint,
+          tokenProgram2022,
+          depositer,
         })
         .instruction();
       const bx = await connection.getLatestBlockhash();
@@ -352,4 +381,7 @@ describe("testing pyth", () => {
       console.log(`Instruction Mesasge`, error);
     }
   });
+
+  it("testing withdraw and burn", () => {});
+  it("testing liquidate", () => {});
 });
