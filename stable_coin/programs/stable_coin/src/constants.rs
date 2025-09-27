@@ -11,3 +11,7 @@ pub const COLLATERALSEED: &[u8] = b"collateral";
 
 #[constant]
 pub const SOL_USDC_FEED_ID :&str = "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+
+#[constant]
+pub const TOKEN_METADATA_PROGRAM_ID: &str =
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";

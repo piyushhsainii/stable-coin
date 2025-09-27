@@ -8,22 +8,19 @@ use anchor_lang::prelude::*;
 pub use constants::*;
 pub use instructions::*;
 
-declare_id!("5TVQ83cMtsw2cGoHoGBxMjoo57UhFh2MVXGh5J2pzia1"); 
+declare_id!("86AkVgu8hUFiYCVGK96M4jWmeJbT3Ebnpnhp7FRcPdgF"); 
 
 #[program]
 pub mod stable_coin {
     use super::*;
-    pub fn process_config(ctx:Context<InitConfig>,
-        authority:Pubkey,
-        mint_address:Pubkey,
+    pub fn process_config(
+        ctx:Context<InitConfig>,
         liq_thx:u64,
         liq_bonus:u64,
         min_health_factor:u64,
-        bump:u8,
-        bump_mint_acc:u8,
         close_factor:u64,
     ) -> Result<()>{
-    instructions::process_config(ctx, authority, mint_address, liq_thx, liq_bonus, min_health_factor, bump, bump_mint_acc, close_factor)?;
+    instructions::process_config(ctx, liq_thx, liq_bonus, min_health_factor, close_factor)?;
     Ok(())
     }
 

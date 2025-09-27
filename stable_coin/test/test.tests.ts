@@ -6,6 +6,7 @@ import {
   createAssociatedTokenAccount,
   createMint,
   mintTo,
+  TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import pkg from "@coral-xyz/anchor";
 import type { Program as ProgramType } from "@coral-xyz/anchor";
@@ -328,60 +329,100 @@ describe("testing pyth", () => {
   );
   const signer = keypair;
 
-  it("initializing config account", async () => {
-    console.log(`Initializing Config Account`);
-    // @ts-ignore
-    const program: ProgramType<StableCoin> = new Program(IDL, {
-      connection,
-    });
-
-    let ix = await program.methods
-      .processConfig(
-        signer.publicKey,
-        new PublicKey(MINT),
-        new BN(8000),
-        new BN(500),
-        new BN(1500),
-        new BN(1)
-      )
-      .accounts({
-        admin: signer.publicKey,
-      });
-  });
-
-  it("testing deposit and mint", async () => {
-    console.log("hitting");
+  it("testing", async () => {
+    console.log("Initializing...");
     // @ts-ignore
     const program: ProgramType<StableCoin> = new Program(IDL, {
       connection,
     });
     try {
-      const ix = await program.methods
+      const [MintPubKey, mintBump] = PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        new PublicKey(IDL.address)
+      );
+
+      const bx = await connection.getLatestBlockhash();
+      let Configix = await program.methods
+        .processConfig(
+          signer.publicKey,
+          new PublicKey(MINT),
+          new BN(8000), // liq thx
+          new BN(500), // bonus
+          new BN(1500), // health factor
+          333, // bump mint
+          new BN(1) // close factor
+        )
+        .accounts({
+          admin: signer.publicKey,
+        })
+        .instruction();
+
+      const Configtx = new Transaction({
+        feePayer: signer.publicKey,
+        blockhash: bx.blockhash,
+        lastValidBlockHeight: bx.lastValidBlockHeight,
+      }).add(Configix);
+
+      const ConfigsimulationResult = await connection.simulateTransaction(
+        Configtx
+      );
+      console.log(`Deposit and Mint Result`, ConfigsimulationResult);
+
+      console.log(`Instruction`, Configix);
+
+      const [getConfigAccount, configBump] = PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        new PublicKey(IDL.address)
+      );
+      // Depositing and Minting Tokens
+      const DepositandMintix = await program.methods
         .depositAndMintTokens(new BN(TOKEN))
         .accounts({
           priceUpdate: SOL_TO_USDC_ACCOUNT,
-          config,
-          mint,
-          tokenProgram2022,
-          depositer,
+          config: getConfigAccount,
+          mint: MINT,
+          tokenProgram2022: TOKEN_2022_PROGRAM_ID,
+          depositer: signer.publicKey,
         })
         .instruction();
-      const bx = await connection.getLatestBlockhash();
       const tx = new Transaction({
         feePayer: signer.publicKey,
         blockhash: bx.blockhash,
         lastValidBlockHeight: bx.lastValidBlockHeight,
-      }).add(ix);
+      }).add(DepositandMintix);
 
-      const simulationResult = await connection.simulateTransaction(tx);
-      console.log(`Result`, simulationResult);
+      const DepositMintResult = await connection.simulateTransaction(tx);
+      console.log(`Deposit and Mint Result`, DepositMintResult);
 
-      console.log(`Instruction`, ix);
+      console.log(`Instruction`, DepositandMintix);
+
+      const WITHDRAW_AMOUNT = 5 * 100000000;
+
+      // Withdraw and Burn Tokens
+      const WithdrawandBurnix = await program.methods
+        .withdrawBurn(new BN(WITHDRAW_AMOUNT))
+        .accounts({
+          priceUpdate: SOL_TO_USDC_ACCOUNT,
+          mint: MINT,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+          withdrawer,
+        })
+        .instruction();
+
+      const WithdrawandBurnixtx = new Transaction({
+        feePayer: signer.publicKey,
+        blockhash: bx.blockhash,
+        lastValidBlockHeight: bx.lastValidBlockHeight,
+      }).add(WithdrawandBurnix);
+
+      const simulationResult = await connection.simulateTransaction(
+        WithdrawandBurnixtx
+      );
+      console.log(`Deposit and Mint Result`, simulationResult);
+
+      console.log(`Instruction`, DepositandMintix);
     } catch (error) {
       console.log(`Instruction Mesasge`, error);
     }
   });
-
-  it("testing withdraw and burn", () => {});
-  it("testing liquidate", () => {});
 });

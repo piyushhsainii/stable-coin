@@ -2,12 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet } from "lucide-react";
+import { Menu, X, Wallet, Wallet2, Coins } from "lucide-react";
 import Link from "next/link";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const wallet = useWallet();
 
   useEffect(() => {
     setMounted(true);
@@ -19,7 +28,7 @@ export function Navbar() {
     }
   };
 
-  const handleClick = () => {
+  const handleClick = async () => {
     playHaptic();
     // Add click sound if Web Audio API is available
     if (typeof window !== "undefined" && "AudioContext" in window) {
@@ -40,6 +49,7 @@ export function Navbar() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.1);
     }
+    await wallet.connect();
   };
 
   if (!mounted) return null;
@@ -75,15 +85,26 @@ export function Navbar() {
             >
               Security
             </a>
-            <Button
-              onClick={handleClick}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground glow-animation"
-            >
-              <Wallet className="w-4 h-4 mr-2" />
-              Connect Wallet
-            </Button>
+            <WalletMultiButton
+              style={{
+                background: "var(--primary)",
+                color: "var(--text-primary-foreground)",
+              }}
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="flex gap-1 items-center justify-center">
+                    <div>2</div>
+                    <Coins color="yellow" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  How much Jacked Nerd tokens you own!
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -123,13 +144,12 @@ export function Navbar() {
               >
                 Security
               </a>
-              <Button
-                onClick={handleClick}
-                className="w-full mt-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                Connect Wallet
-              </Button>
+              <WalletMultiButton
+                style={{
+                  background: "var(--primary)",
+                  color: "var(--text-primary-foreground)",
+                }}
+              />
             </div>
           </div>
         )}

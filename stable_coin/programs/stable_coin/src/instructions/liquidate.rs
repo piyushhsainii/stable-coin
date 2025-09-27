@@ -67,7 +67,7 @@ pub fn process_liquidate(ctx:Context<Liquidate>, coin_amount:u64)-> Result<()>{
         collateral_amount_in_usd,
         config.liq_thx);
     // stop liquidation is account is healthy
-    if health_factor >= config.min_health_factor {
+    if health_factor >= 1 {
         return Err(ErrorCode::HealthFactorError.into())
     }
     let max_liquidation_amount = config.close_factor.checked_mul(collateral_account.lamports).unwrap().checked_div(10000).unwrap();

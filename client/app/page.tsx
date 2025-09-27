@@ -7,6 +7,7 @@ import { HowItWorks } from "@/components/how-it-works";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function Home() {
   return (
