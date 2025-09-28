@@ -42,7 +42,7 @@ export function HeroSection() {
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground text-balance max-w-3xl mx-auto mb-8 leading-relaxed">
-            SolStable is a USD-pegged stablecoin backed by SOL collateral,
+            Jacked Nerd is a USD-pegged stablecoin backed by SOL collateral,
             delivering unmatched stability and transparency on the Solana
             blockchain.
           </p>

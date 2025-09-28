@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-stable_coin = "86AkVgu8hUFiYCVGK96M4jWmeJbT3Ebnpnhp7FRcPdgF"
+stable_coin = "5ydx13EfJaA6WDSztBWEAJCdqBzpEvQgqG8w7nwn7LRc"
 
 [registry]
 url = "https://api.apr.dev"

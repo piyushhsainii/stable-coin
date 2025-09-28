@@ -59,17 +59,20 @@ pub fn usd_to_lamports<'info>(
 
 
 pub fn calculate_health_factor<'info>(
-  borrowed_amt:u64,
-  collateral_amount_in_usd:u64,
-  max_lts:u64
+    borrowed_amt: u64,
+    collateral_amount_in_usd: u64,
+    max_lts: u64,
 ) -> u64 {
     if borrowed_amt == 0 {
-        ((1));
+        return u64::MAX; // or 1, or any sentinel value you prefer
     }
-    let new_health_factor = collateral_amount_in_usd.checked_mul(max_lts).unwrap().checked_div(borrowed_amt).unwrap().checked_div(10000).unwrap();
 
-    new_health_factor
+    collateral_amount_in_usd
+        .checked_mul(max_lts).expect("overflow in collateral * max_lts")
+        .checked_div(borrowed_amt).expect("division by borrowed_amt")
+        .checked_div(10000).expect("division by 10000")
 }
+
 
 pub fn burn_tokens<'info>(
     mint:&InterfaceAccount<'info,Mint>,

@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 pub const SEED: &str = "anchor";
 
 #[constant]
-pub const MINTSEED: &[u8] = b"mint";
+pub const MINTSEED: &[u8] = b"jacked_nerd";
 
 #[constant]
 pub const COLLATERALSEED: &[u8] = b"collateral";

@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 pub use constants::*;
 pub use instructions::*;
 
-declare_id!("86AkVgu8hUFiYCVGK96M4jWmeJbT3Ebnpnhp7FRcPdgF"); 
+declare_id!("5ydx13EfJaA6WDSztBWEAJCdqBzpEvQgqG8w7nwn7LRc"); 
 
 #[program]
 pub mod stable_coin {

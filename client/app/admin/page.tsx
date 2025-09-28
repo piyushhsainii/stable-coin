@@ -36,19 +36,15 @@ const Admin = () => {
     );
     return !!account;
   };
-
   const initConfig = async () => {
     if (!wallet.publicKey) {
       addLog("❌ Wallet not connected");
       return;
     }
-
     setIsLoading(true);
     setLogs([]);
-
     try {
       addLog("🚀 Initializing configuration...");
-
       const connection = new Connection(
         "https://devnet.helius-rpc.com/?api-key=ff338341-babd-4354-82c0-e8853c64fa66",
         "confirmed"

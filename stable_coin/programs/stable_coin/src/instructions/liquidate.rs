@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
-use anchor_spl::{token_2022::{burn, Burn}, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{associated_token::AssociatedToken, token_2022::{burn, Burn}, token_interface::{Mint, TokenAccount, TokenInterface}};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
 use crate::{burn_tokens, calculate_health_factor, error::ErrorCode, integer_usd_from_pyth, lamports_to_usd, state::{Collateral, Config}, usd_to_lamports, COLLATERALSEED, MINTSEED, SOL_USDC_FEED_ID};
@@ -16,23 +16,35 @@ pub struct Liquidate<'info>{
     pub collateral_account:Account<'info,Collateral>,
     #[account(mut)]
     pub sol_account:AccountInfo<'info>,
-    #[account(
-        init_if_needed,
-        payer=liquidator,
-        seeds=[b"mint_token_account",liquidator.key().as_ref()],
-        space=8,
-        bump
+      #[account(
+        mut,
+        associated_token::mint=mint,
+        associated_token::authority=liquidator,
+        associated_token::token_program=token_program_2022
     )]
     pub liquidator_token_account:InterfaceAccount<'info,TokenAccount>,
     /// SAFETY: This account is only used as a recipient for SOL transfers. 
 /// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds=[b"config"],
+        bump
+    )]
     pub config:Account<'info,Config>,
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds=[b"jacked_nerd"],
+        mint::authority=mint,
+        mint::freeze_authority=mint,
+        mint::token_program=token_program_2022,
+        bump
+    )]
     pub mint:InterfaceAccount<'info,Mint>,
     pub system_program:Program<'info,System>,
     pub price_update:Account<'info, PriceUpdateV2>,
     pub token_program_2022: Interface<'info, TokenInterface>,
+    pub associated_token_program:Program<'info,AssociatedToken>
+
 }
 
 

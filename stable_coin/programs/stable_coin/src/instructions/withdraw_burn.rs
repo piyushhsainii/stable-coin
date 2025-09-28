@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface}};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
 use crate::{burn_tokens, calculate_health_factor, error::ErrorCode, integer_usd_from_pyth, lamports_to_usd, state::{Collateral, Config}, usd_to_lamports, SOL_USDC_FEED_ID};
@@ -20,24 +20,34 @@ pub struct WithdrawBurn<'info>{
         bump
     )]
     pub config:Account<'info,Config>,
-    #[account(
+     #[account(
         mut,
-        seeds=[b"mint_token_account",withdrawer.key().as_ref()],
-        bump
+        associated_token::mint=mint,
+        associated_token::authority=withdrawer,
+        associated_token::token_program=token_program
     )]
     pub withdraw_collateral_token_account:InterfaceAccount<'info, TokenAccount>,
     /// SAFETY: This account is only used as a recipient for SOL transfers. 
-/// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
+    /// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
     #[account(
         mut,
         seeds=[b"collateral_token_account",withdrawer.key().as_ref()],
         bump
     )]
     pub withdraw_sol_account: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds=[b"jacked_nerd"],
+        mint::authority=mint,
+        mint::freeze_authority=mint,
+        mint::token_program=token_program,
+        bump
+    )]
     pub mint:InterfaceAccount<'info,Mint>,
     pub price_update:Account<'info,PriceUpdateV2>,
     pub token_program:Interface<'info, TokenInterface>,
-    pub system_program:Program<'info, System>
+    pub system_program:Program<'info, System>,
+    pub associated_token_program:Program<'info,AssociatedToken>
 }
 
 //  1. Check Health Factor to make sure the account does not go below the minimum health factor.
@@ -48,7 +58,6 @@ pub struct WithdrawBurn<'info>{
 pub fn withdraw_burn(ctx:Context<WithdrawBurn>, withdraw_amount:u64)-> Result<()> {
 
     let collateral_account = &mut ctx.accounts.withdrawer_collateral_account;
-    let sol_account = &mut ctx.accounts.withdraw_sol_account;
     let collateral_token_acc = &mut  ctx.accounts.withdraw_collateral_token_account;
     let price = &mut ctx.accounts.price_update;
     let config = &mut ctx.accounts.config;

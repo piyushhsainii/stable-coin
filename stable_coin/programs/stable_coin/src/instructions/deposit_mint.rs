@@ -1,8 +1,7 @@
 use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface}};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 use crate::{calculate_health_factor, error::ErrorCode, integer_usd_from_pyth, lamports_to_usd, mint_tokens, state::{Collateral, Config}, SOL_USDC_FEED_ID};
-
 
 #[derive(Accounts)]
 pub struct InitDeposit<'info> {
@@ -17,7 +16,7 @@ pub struct InitDeposit<'info> {
     )]
     pub collateral_account:Account<'info,Collateral>,
     /// SAFETY: This account is only used as a recipient for SOL transfers. 
-/// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
+    /// The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client.
     #[account(
         init_if_needed,
         payer=depositer,
@@ -29,25 +28,38 @@ pub struct InitDeposit<'info> {
     #[account(
         init_if_needed,
         payer=depositer,
-        seeds=[b"mint_token_account",depositer.key().as_ref()],
-        space=8,
-        bump
+        associated_token::mint=mint,
+        associated_token::authority=depositer,
+        associated_token::token_program=token_program_2022
     )]
     pub depositer_token_account:InterfaceAccount<'info,TokenAccount>,
-    #[account(mut)]
+     #[account(
+        mut,
+        seeds=[b"config"],
+        bump
+    )]
     pub config:Account<'info,Config>,
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds=[b"jacked_nerd"],
+        mint::authority=mint,
+        mint::freeze_authority=mint,
+        mint::token_program=token_program_2022,
+        bump
+    
+    )]
     pub mint:InterfaceAccount<'info,Mint>,
     pub system_program:Program<'info,System>,
     pub price_update:Account<'info, PriceUpdateV2>,
-    pub token_program_2022: Interface<'info, TokenInterface>
+    pub token_program_2022: Interface<'info, TokenInterface>,
+    pub associated_token_program:Program<'info,AssociatedToken>
 }
 
     // 1. Checking if this is initial deposit -
     // 2. Save the collateral into Associated sol acount
-   //  3. Get USD equivalent of the provided sol
-   //  4. Mint tokens to the user
-   // 5. Updating user state
+    //  3. Get USD equivalent of the provided sol
+    //  4. Mint tokens to the user
+    // 5. Updating user state
 
 pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
     // 1. checking if this is initial deposit -

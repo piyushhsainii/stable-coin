@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { useUserState } from "@/contexts/user-state-context"
-import { motion } from "framer-motion"
-import { RefreshCw, RotateCcw } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useUserState } from "@/contexts/user-state-context";
+import { motion } from "framer-motion";
+import { RefreshCw, RotateCcw } from "lucide-react";
 
 export function UserBalanceCard() {
-  const { userState, resetState } = useUserState()
+  const { userState, resetState } = useUserState();
 
   const balanceItems = [
     {
@@ -25,17 +25,13 @@ export function UserBalanceCard() {
       value: userState.totalCollateralDeposited.toFixed(4),
       suffix: "SOL",
     },
-    {
-      label: "Total Minted",
-      value: userState.totalStablecoinsMinted.toFixed(2),
-      suffix: "USD",
-    },
-  ]
+  ];
 
   const healthRatio =
     userState.totalCollateralDeposited > 0
-      ? (userState.totalCollateralDeposited * 100 * 0.8) / Math.max(userState.totalStablecoinsMinted, 1)
-      : 0
+      ? (userState.totalCollateralDeposited * 100 * 0.8) /
+        Math.max(userState.stablecoinBalance, 1)
+      : 0;
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50">
@@ -72,13 +68,14 @@ export function UserBalanceCard() {
             >
               <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
               <p className="text-lg font-semibold">
-                {item.value} <span className="text-primary text-sm">{item.suffix}</span>
+                {item.value}{" "}
+                <span className="text-primary text-sm">{item.suffix}</span>
               </p>
             </motion.div>
           ))}
         </div>
 
-        {userState.totalStablecoinsMinted > 0 && (
+        {userState.stablecoinBalance > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,17 +83,23 @@ export function UserBalanceCard() {
               healthRatio > 1.5
                 ? "bg-green-500/10 border-green-500/30 text-green-400"
                 : healthRatio > 1.2
-                  ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
-                  : "bg-destructive/10 border-destructive/30 text-destructive"
+                ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                : "bg-destructive/10 border-destructive/30 text-destructive"
             }`}
           >
-            <p className="text-sm font-medium">Position Health Ratio: {healthRatio.toFixed(2)}</p>
+            <p className="text-sm font-medium">
+              Position Health Ratio: {healthRatio.toFixed(2)}
+            </p>
             <p className="text-xs opacity-80">
-              {healthRatio > 1.5 ? "Healthy" : healthRatio > 1.2 ? "Moderate Risk" : "High Risk"}
+              {healthRatio > 1.5
+                ? "Healthy"
+                : healthRatio > 1.2
+                ? "Moderate Risk"
+                : "High Risk"}
             </p>
           </motion.div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

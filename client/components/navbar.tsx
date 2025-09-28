@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, Wallet2, Coins } from "lucide-react";
+import { Menu, X, Coins } from "lucide-react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -95,7 +95,7 @@ export function Navbar() {
               <Tooltip>
                 <TooltipTrigger>
                   <div className="flex gap-1 items-center justify-center">
-                    <div>2</div>
+                    <div>0</div>
                     <Coins color="yellow" />
                   </div>
                 </TooltipTrigger>
