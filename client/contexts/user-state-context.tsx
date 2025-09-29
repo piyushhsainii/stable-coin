@@ -2,7 +2,7 @@
 
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import {
   createContext,
   useContext,
@@ -12,6 +12,10 @@ import {
 } from "react";
 import IDL from "../../stable_coin/target/idl/stable_coin.json";
 import { StableCoin } from "@/build/stable_coin";
+import {
+  getAssociatedTokenAddress,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 
 interface UserState {
   solBalance: number;
@@ -35,10 +39,11 @@ interface UserStateContextType {
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, "id" | "timestamp">) => void;
   resetState: () => void;
+  connection: Connection;
 }
 
 const initialState: UserState = {
-  solBalance: 100.0, // Mock initial balance
+  solBalance: 0, // Mock initial balance
   stablecoinBalance: 0,
   totalCollateralDeposited: 0,
 };
@@ -76,7 +81,8 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
     }
   };
   const connection = new Connection(
-    `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
+    // `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
+    clusterApiUrl("devnet"),
     "confirmed"
   );
   // @ts-ignore
@@ -103,16 +109,35 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
         [Buffer.from("collateral_token_account"), wallet.publicKey.toBuffer()],
         new PublicKey(IDL.address)
       );
-      // Deriving the stable coin token account
-      const [StableCoinTokenAcc] = PublicKey.findProgramAddressSync(
-        [Buffer.from("mint_token_account"), wallet.publicKey.toBuffer()],
+      // Deriving Mint Account
+      const [Mint] = PublicKey.findProgramAddressSync(
+        [Buffer.from("jacked_nerd")],
         new PublicKey(IDL.address)
+      );
+      // Deriving the stable coin token account
+      const depositerTokenAcc = await getAssociatedTokenAddress(
+        Mint,
+        wallet.publicKey,
+        false,
+        TOKEN_2022_PROGRAM_ID
       );
       try {
         const collateralAccInfo = await program.account.collateral.fetch(
           collateralAcc
         );
+        console.log(`program info`, collateralAccInfo);
+        console.log(`program coins info`, collateralAccInfo.coins.toNumber());
+        console.log(
+          `program lamports info`,
+          collateralAccInfo.lamports.toNumber()
+        );
         const solBal = await connection.getBalance(wallet.publicKey);
+
+        setUserState({
+          solBalance: solBal,
+          stablecoinBalance: collateralAccInfo.coins,
+          totalCollateralDeposited: collateralAccInfo.lamports,
+        });
         updateUserState({
           solBalance: solBal,
           stablecoinBalance: collateralAccInfo.coins.toNumber(),
@@ -140,6 +165,7 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
         transactions,
         addTransaction,
         resetState,
+        connection,
       }}
     >
       {children}

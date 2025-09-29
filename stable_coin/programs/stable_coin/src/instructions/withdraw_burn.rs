@@ -70,19 +70,19 @@ pub fn withdraw_burn(ctx:Context<WithdrawBurn>, withdraw_amount:u64)-> Result<()
     // calculating health factor
 
     let withdraw_amount_in_lamports = usd_to_lamports(withdraw_amount, (price_in_usd as u64))?;
-    let total_collateral_in_lamports = collateral_account.lamports.checked_sub(withdraw_amount_in_lamports).unwrap();
-    let total_collateral_amount_in_usd = lamports_to_usd(total_collateral_in_lamports,(price_in_usd as u64))?;
+    let total_collateral_amount_in_usd = lamports_to_usd(collateral_account.lamports,(price_in_usd as u64))?;
+
+    let new_coins_balance = collateral_account.coins.checked_sub(withdraw_amount).unwrap();
 
     let health_factor = calculate_health_factor(
-        collateral_account.coins,
+        new_coins_balance,
          total_collateral_amount_in_usd,
          config.liq_thx
         );
-
-    if health_factor <= 0 {
+    msg!("Health Factor : {}",health_factor);
+    if health_factor <= 1 {
         return Err(ErrorCode::HealthFactorError.into())
     }
-
     // Burn the tokens
     burn_tokens(
         &ctx.accounts.mint,
@@ -108,8 +108,8 @@ pub fn withdraw_burn(ctx:Context<WithdrawBurn>, withdraw_amount:u64)-> Result<()
 
    transfer(context, withdrawal_transfer_amount)?;
    // Update the state of the user 
-    collateral_account.coins = collateral_account.coins.checked_div(withdraw_amount).unwrap();
-    collateral_account.lamports = collateral_account.lamports.checked_div(withdrawal_transfer_amount).unwrap();
+    collateral_account.coins = collateral_account.coins.checked_sub(withdraw_amount).unwrap();
+    collateral_account.lamports = collateral_account.lamports.checked_sub(withdrawal_transfer_amount).unwrap();
 
     Ok(())
 }

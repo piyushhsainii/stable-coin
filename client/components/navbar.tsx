@@ -6,12 +6,6 @@ import { Menu, X, Coins } from "lucide-react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,19 +85,6 @@ export function Navbar() {
                 color: "var(--text-primary-foreground)",
               }}
             />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <div className="flex gap-1 items-center justify-center">
-                    <div>0</div>
-                    <Coins color="yellow" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  How much Jacked Nerd tokens you own!
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
           <div className="md:hidden">
             <Button

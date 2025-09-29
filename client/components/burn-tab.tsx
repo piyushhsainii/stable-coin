@@ -1,86 +1,151 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useUserState } from "@/contexts/user-state-context"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import { FeedbackAlert } from "@/components/feedback-alert"
-import { Flame, TrendingDown } from "lucide-react"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useUserState } from "@/contexts/user-state-context";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { FeedbackAlert } from "@/components/feedback-alert";
+import { Flame, TrendingDown } from "lucide-react";
+import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
+import IDL from "../../stable_coin/target/idl/stable_coin.json";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { StableCoin } from "@/build/stable_coin";
+import { PublicKey } from "@solana/web3.js";
+import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
+import { SOL_USDC_FEED_ID } from "@/lib/lib";
 
 export function BurnTab() {
-  const { userState, updateUserState, isLoading, setIsLoading } = useUserState()
-  const [burnAmount, setBurnAmount] = useState("")
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const { userState, updateUserState, isLoading, setIsLoading, connection } =
+    useUserState();
+  const wallet = useWallet();
+  const [burnAmount, setBurnAmount] = useState("");
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // Mock exchange rate: 100 USD stablecoin = 1 SOL
-  const EXCHANGE_RATE = 0.01
-  const estimatedWithdraw = burnAmount ? Number.parseFloat(burnAmount) * EXCHANGE_RATE : 0
+  const EXCHANGE_RATE = 0.01;
+  const estimatedWithdraw = burnAmount
+    ? Number.parseFloat(burnAmount) * EXCHANGE_RATE
+    : 0;
 
   const handleBurn = async () => {
     if (!burnAmount || Number.parseFloat(burnAmount) <= 0) {
-      setFeedback({ type: "error", message: "Please enter a valid burn amount" })
-      return
+      setFeedback({
+        type: "error",
+        message: "Please enter a valid burn amount",
+      });
+      return;
     }
 
-    const amount = Number.parseFloat(burnAmount)
+    const amount = Number.parseFloat(burnAmount);
     if (amount > userState.stablecoinBalance) {
-      setFeedback({ type: "error", message: "Insufficient stablecoin balance" })
-      return
+      setFeedback({
+        type: "error",
+        message: "Insufficient stablecoin balance",
+      });
+      return;
     }
 
-    setIsLoading(true)
-    setFeedback(null)
+    setIsLoading(true);
+    setFeedback(null);
 
     try {
-      // Simulate transaction delay
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // @ts-ignore
+      const provider = new AnchorProvider(connection, wallet, {
+        preflightCommitment: "confirmed",
+      });
+      const program: Program<StableCoin> = new Program(IDL, provider);
 
-      // Mock transaction success
-      const withdrawAmount = amount * EXCHANGE_RATE
+      const [config] = PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        new PublicKey(IDL.address)
+      );
+      const [mint] = PublicKey.findProgramAddressSync(
+        [Buffer.from("jacked_nerd")],
+        new PublicKey(IDL.address)
+      );
+      const pyth = new PythSolanaReceiver({
+        connection,
+        // @ts-ignore
+        wallet: wallet,
+      });
+      const PRICE_UPDATE = pyth.getPriceFeedAccountAddress(0, SOL_USDC_FEED_ID);
+      console.log(amount);
+      const ix = await program.methods
+        .withdrawBurn(new BN(amount))
+        .accounts({
+          mint,
+          priceUpdate: PRICE_UPDATE,
+          tokenProgram: new PublicKey(
+            "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+          ),
+          withdrawer: wallet.publicKey!,
+        })
+        .rpc();
+      console.log(`TxSig`, ix);
       updateUserState({
-        solBalance: userState.solBalance + withdrawAmount,
+        solBalance: userState.solBalance,
         stablecoinBalance: userState.stablecoinBalance - amount,
-        totalCollateralDeposited: Math.max(0, userState.totalCollateralDeposited - withdrawAmount),
-        totalWithdrawn: userState.totalWithdrawn + withdrawAmount,
-      })
-
+        totalCollateralDeposited: Math.max(
+          0,
+          userState.totalCollateralDeposited
+        ),
+      });
       setFeedback({
         type: "success",
-        message: `Successfully burned ${amount.toFixed(2)} stablecoins and withdrew ${withdrawAmount.toFixed(4)} SOL!`,
-      })
-      setBurnAmount("")
+        message: `Successfully burned ${amount.toFixed(2)} stablecoins`,
+      });
+      setBurnAmount("");
 
       // Play success sound
       if (typeof window !== "undefined" && "AudioContext" in window) {
-        const audioContext = new AudioContext()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-        oscillator.frequency.setValueAtTime(600, audioContext.currentTime)
-        oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1)
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(
+          400,
+          audioContext.currentTime + 0.1
+        );
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioContext.currentTime + 0.3
+        );
 
-        oscillator.start(audioContext.currentTime)
-        oscillator.stop(audioContext.currentTime + 0.3)
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
       }
     } catch (error) {
-      setFeedback({ type: "error", message: "Transaction failed. Please try again." })
+      console.log(`Err`, error);
+      setFeedback({
+        type: "error",
+        message: "Transaction failed. Please try again.",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleMaxClick = () => {
-    setBurnAmount(userState.stablecoinBalance.toString())
-  }
+    setBurnAmount(userState.stablecoinBalance.toString());
+  };
 
   return (
     <div className="space-y-6">
@@ -90,7 +155,9 @@ export function BurnTab() {
             <Flame className="h-5 w-5 text-destructive" />
             Burn Stablecoins & Withdraw SOL
           </CardTitle>
-          <CardDescription>Burn your stablecoins to withdraw SOL collateral at a 100:1 ratio</CardDescription>
+          <CardDescription>
+            Burn your stablecoins to withdraw SOL collateral at a 100:1 ratio
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -116,7 +183,8 @@ export function BurnTab() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Available: {userState.stablecoinBalance.toFixed(2)} USD Stablecoins
+              Available: {userState.stablecoinBalance.toFixed(2)} USD
+              Stablecoins
             </p>
           </div>
 
@@ -128,10 +196,16 @@ export function BurnTab() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-destructive" />
-                <span className="text-sm font-medium">Estimated Withdrawal</span>
+                <span className="text-sm font-medium">
+                  Estimated Withdrawal
+                </span>
               </div>
-              <p className="text-lg font-semibold text-destructive">{estimatedWithdraw.toFixed(4)} SOL</p>
-              <p className="text-xs text-muted-foreground mt-1">Exchange Rate: 100 USD = 1 SOL</p>
+              <p className="text-lg font-semibold text-destructive">
+                {estimatedWithdraw.toFixed(4)} SOL
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Exchange Rate: 100 USD = 1 SOL
+              </p>
             </motion.div>
           )}
 
@@ -146,7 +220,9 @@ export function BurnTab() {
 
           <Button
             onClick={handleBurn}
-            disabled={isLoading || !burnAmount || Number.parseFloat(burnAmount) <= 0}
+            disabled={
+              isLoading || !burnAmount || Number.parseFloat(burnAmount) <= 0
+            }
             className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
             {isLoading ? (
@@ -160,12 +236,15 @@ export function BurnTab() {
           </Button>
 
           {feedback && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
               <FeedbackAlert type={feedback.type} message={feedback.message} />
             </motion.div>
           )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

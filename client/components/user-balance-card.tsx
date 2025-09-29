@@ -12,7 +12,7 @@ export function UserBalanceCard() {
   const balanceItems = [
     {
       label: "SOL Balance",
-      value: userState.solBalance.toFixed(4),
+      value: (userState.solBalance / 1000000000).toFixed(2),
       suffix: "SOL",
     },
     {
@@ -22,7 +22,7 @@ export function UserBalanceCard() {
     },
     {
       label: "Total Collateral",
-      value: userState.totalCollateralDeposited.toFixed(4),
+      value: (userState.totalCollateralDeposited / 1000000000).toFixed(2),
       suffix: "SOL",
     },
   ];
@@ -57,14 +57,14 @@ export function UserBalanceCard() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div className="flex items-center justify-center gap-4 mb-4">
           {balanceItems.map((item, index) => (
             <motion.div
               key={item.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="text-center p-4 rounded-lg bg-secondary/30 border border-border/30"
+              className="text-center p-4 rounded-lg bg-secondary/30 border border-border/30 w-full"
             >
               <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
               <p className="text-lg font-semibold">

@@ -14,7 +14,7 @@ pub fn mint_tokens<'info>(
 ) -> Result<()> {
 
     let signer_seeds: &[&[&[u8]]] = &[&[MINTSEED, &[mint_bump]]];
-
+    let scaled_token_amount = amount.checked_mul(1000000000).unwrap();
     let ctx = CpiContext::new_with_signer(
         token_program.to_account_info(),
         MintTo{
@@ -23,7 +23,7 @@ pub fn mint_tokens<'info>(
         mint:mint_address.to_account_info()
     }, signer_seeds);
 
-    mint_to(ctx, amount)?;
+    mint_to(ctx, scaled_token_amount)?;
 
     Ok(())
 }
@@ -82,7 +82,7 @@ pub fn burn_tokens<'info>(
     amount:u64
 ){
     let signer_seeds: &[&[&[u8]]] = &[&[MINTSEED, &[mint_bump]]];
-
+    let amount_in_lamports = amount.checked_mul(1000000000).unwrap();
     let ctx = CpiContext::new_with_signer(
         token_program.to_account_info(),
          Burn{
@@ -92,6 +92,6 @@ pub fn burn_tokens<'info>(
          }, 
         signer_seeds
     );
-    burn(ctx, amount);
+    burn(ctx, amount_in_lamports);
 
 }

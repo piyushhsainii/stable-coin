@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,39 +16,28 @@ import { useUserState } from "@/contexts/user-state-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedbackAlert } from "@/components/feedback-alert";
 import { Coins, CoinsIcon, TrendingUp } from "lucide-react";
-import {
-  ComputeBudgetProgram,
-  Connection,
-  PublicKey,
-  SYSVAR_INSTRUCTIONS_PUBKEY,
-} from "@solana/web3.js";
+import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
 import IDL from "../../stable_coin/target/idl/stable_coin.json";
 import { StableCoin } from "@/build/stable_coin";
-import { TOKEN_METADATA_PROGRAM_ID } from "@/lib/lib";
+import { SOL_USDC_FEED_ID } from "@/lib/lib";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-import { Transaction } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 
 export function DepositTab() {
-  const { userState, updateUserState, isLoading, setIsLoading } =
+  const { userState, updateUserState, isLoading, setIsLoading, connection } =
     useUserState();
   const [depositAmount, setDepositAmount] = useState("");
+  const [balance, setBalance] = useState(0);
   const wallet = useWallet();
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
-
-  // Mock exchange rate: 1 SOL = 100 USD stablecoin
-  const EXCHANGE_RATE = 240;
-  const estimatedMint = depositAmount
-    ? Number.parseFloat(depositAmount) * EXCHANGE_RATE
-    : 0;
 
   const handleDeposit = async () => {
     if (!depositAmount || Number.parseFloat(depositAmount) <= 0) {
@@ -71,12 +60,6 @@ export function DepositTab() {
     setFeedback(null);
 
     try {
-      // Mock transaction success
-      const mintedAmount = amount * EXCHANGE_RATE;
-      const connection = new Connection(
-        "https://devnet.helius-rpc.com/?api-key=ff338341-babd-4354-82c0-e8853c64fa66",
-        "confirmed"
-      );
       // @ts-ignore
       const provider = new AnchorProvider(connection, wallet, {
         preflightCommitment: "confirmed",
@@ -87,16 +70,6 @@ export function DepositTab() {
         [Buffer.from("jacked_nerd")],
         new PublicKey(IDL.address)
       );
-      const [metadata] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          new PublicKey(TOKEN_METADATA_PROGRAM_ID).toBuffer(),
-          mint_address.toBuffer(),
-        ],
-        new PublicKey(TOKEN_METADATA_PROGRAM_ID)
-      );
-
-      const balance = await connection.getBalance(wallet.publicKey);
 
       const [config] = PublicKey.findProgramAddressSync(
         [Buffer.from("config")],
@@ -113,9 +86,6 @@ export function DepositTab() {
         false,
         TOKEN_2022_PROGRAM_ID
       );
-      console.log(`Config`, config);
-      console.log(`Mint`, mint.toString());
-      console.log(`DEPOSITER TOKENA ACC `, depositerTokenAcc.toString());
       const sol_usdc_feed_id =
         "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
@@ -126,9 +96,9 @@ export function DepositTab() {
       });
 
       const PRICE_UPDATE = pyth.getPriceFeedAccountAddress(0, sol_usdc_feed_id);
-
+      const lamport_amount = amount * 1000000000;
       const ix = await program.methods
-        .depositAndMintTokens(new BN(100000000))
+        .depositAndMintTokens(new BN(lamport_amount))
         .accounts({
           config,
           mint,
@@ -138,33 +108,11 @@ export function DepositTab() {
           ),
           depositer: wallet.publicKey,
         })
-        // .preInstructions([
-        //   ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
-        //   ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
-        // ])
-        .instruction();
-      const bx = await connection.getLatestBlockhash("confirmed");
-      const tx = new Transaction({
-        feePayer: wallet.publicKey,
-        blockhash: bx.blockhash,
-        lastValidBlockHeight: bx.lastValidBlockHeight,
-      }).add(ix);
-
-      const txSig = await wallet.sendTransaction(tx, connection);
-      console.log(`txSig`, txSig);
-      await connection.confirmTransaction(txSig, "confirmed");
-      // const txSig = await connection.simulateTransaction(tx);
-      // console.log(`txSig`, txSig);
-      updateUserState({
-        solBalance: userState.solBalance - amount,
-        stablecoinBalance: userState.stablecoinBalance + mintedAmount,
-        totalCollateralDeposited: userState.totalCollateralDeposited + amount,
-      });
+        .rpc();
+      console.log(`TxSig`, ix);
       setFeedback({
         type: "success",
-        message: `Successfully deposited ${amount} SOL and minted ${mintedAmount.toFixed(
-          2
-        )} stablecoins!`,
+        message: `Successfully deposited ${amount} SOL`,
       });
       setDepositAmount("");
 
@@ -190,6 +138,7 @@ export function DepositTab() {
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.3);
       }
+      window.location.reload();
     } catch (error) {
       console.log(error);
       setFeedback({
@@ -202,8 +151,16 @@ export function DepositTab() {
   };
 
   const handleMaxClick = () => {
-    setDepositAmount(userState.solBalance.toString());
+    setDepositAmount(String(balance));
   };
+
+  useEffect(() => {
+    const getMaxBalance = async () => {
+      const balance = await connection.getBalance(wallet.publicKey!);
+      setBalance(balance);
+    };
+    getMaxBalance();
+  }, [wallet.publicKey]);
 
   return (
     <div className="space-y-6">
@@ -256,13 +213,6 @@ export function DepositTab() {
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Estimated Mint</span>
               </div>
-              <div className="text-lg font-semibold text-primary flex items-center  gap-2">
-                <div>{estimatedMint.toFixed(2)} Stablecoins </div>
-                <CoinsIcon color="yellow" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Exchange Rate: 1 SOL = {EXCHANGE_RATE} USD
-              </p>
             </motion.div>
           )}
 
