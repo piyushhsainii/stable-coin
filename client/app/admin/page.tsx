@@ -8,7 +8,7 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { Program, BN, AnchorProvider } from "@coral-xyz/anchor";
-import IDL from "../../build/stable_coin.json";
+import IDL from "../../target/stable_coin.json";
 import { Button } from "@/components/ui/button";
 import { TOKEN_METADATA_PROGRAM_ID } from "@/lib/lib";
 import { useWallet } from "@solana/wallet-adapter-react";

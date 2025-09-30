@@ -19,8 +19,8 @@ import { Coins, TrendingUp } from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
-import IDL from "../build/stable_coin.json";
-import { StableCoin } from "../build/stable_coin";
+import IDL from "../target/stable_coin.json";
+import { StableCoin } from "../target/stable_coin";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { Transaction } from "@solana/web3.js";
 

@@ -27,8 +27,8 @@ import { usePythPrice } from "@/contexts/pythPrice";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import IDL from "../build/stable_coin.json";
-import { StableCoin } from "../build/stable_coin";
+import IDL from "../target/stable_coin.json";
+import { StableCoin } from "../target/stable_coin";
 
 interface CollateralAccount {
   publicKey: PublicKey;
