@@ -67,7 +67,7 @@ pub fn process_liquidate(ctx:Context<Liquidate>, coin_amount:u64)-> Result<()>{
 
     let clock = &Clock::get()?;
     let feed_id = get_feed_id_from_hex(SOL_USDC_FEED_ID)?;
-    let price = price.get_price_no_older_than(clock, 100, &feed_id)?;
+    let price = price.get_price_no_older_than(clock, 3600, &feed_id)?;
 
     let price_in_usd = integer_usd_from_pyth(price.price, price.exponent);
 
@@ -93,14 +93,14 @@ pub fn process_liquidate(ctx:Context<Liquidate>, coin_amount:u64)-> Result<()>{
     if total_coin_amount_in_lamports > max_liquidation_amount {
         return Err(ErrorCode::MaxLiquidationAmount.into())
     }
-    
+    let liquidator = &mut ctx.accounts.liquidator;
     // transfer the coins of the user to the protocol
     burn_tokens(
         &ctx.accounts.mint,
         &ctx.accounts.token_program_2022,
-        config.bump_mint_acc,
         &ctx.accounts.liquidator_token_account,
-        coin_amount
+        coin_amount,
+        liquidator
     );
 
     // transfer the collateral of the user to the liquidator

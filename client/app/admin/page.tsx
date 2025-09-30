@@ -12,6 +12,7 @@ import IDL from "../../../stable_coin/target/idl/stable_coin.json";
 import { Button } from "@/components/ui/button";
 import { TOKEN_METADATA_PROGRAM_ID } from "@/lib/lib";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { Transaction } from "@solana/web3.js";
 
 const Admin = () => {
   const wallet = useWallet();
@@ -128,9 +129,20 @@ const Admin = () => {
           ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
           ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
         ])
-        .rpc();
-      console.log(`TX SIG`, ix);
+        .instruction();
+
+      const bx = await connection.getLatestBlockhash();
+      const tx = new Transaction({
+        blockhash: bx.blockhash,
+        lastValidBlockHeight: bx.lastValidBlockHeight,
+        feePayer: wallet.publicKey,
+      }).add(ix);
+
+      const txSig = await wallet.sendTransaction(tx, connection);
+      console.log(`TX SIG`, txSig);
       addLog("⏳ Waiting for confirmation...");
+      await connection.confirmTransaction(txSig);
+      addLog("⏳ Tx confirmed");
     } catch (error) {
       addLog(`💥 Critical error: ${error}`);
       console.error("Full error:", error);

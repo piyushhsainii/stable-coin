@@ -77,20 +77,18 @@ pub fn calculate_health_factor<'info>(
 pub fn burn_tokens<'info>(
     mint:&InterfaceAccount<'info,Mint>,
     token_program:&Interface<'info, TokenInterface>,
-    mint_bump:u8,
     user:&InterfaceAccount<'info, TokenAccount>,
-    amount:u64
+    amount:u64,
+    withdrawer:&Signer<'info>
 ){
-    let signer_seeds: &[&[&[u8]]] = &[&[MINTSEED, &[mint_bump]]];
     let amount_in_lamports = amount.checked_mul(1000000000).unwrap();
-    let ctx = CpiContext::new_with_signer(
+    let ctx = CpiContext::new(
         token_program.to_account_info(),
          Burn{
-            authority:mint.to_account_info(),
+            authority:withdrawer.to_account_info(),
             mint:mint.to_account_info(),
             from:user.to_account_info(),
-         }, 
-        signer_seeds
+         }
     );
     burn(ctx, amount_in_lamports);
 

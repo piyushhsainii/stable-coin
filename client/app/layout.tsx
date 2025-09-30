@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppProvider from "./AppProvider";
+import { PythPriceProvider } from "@/contexts/pythPrice";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={` antialiased`}>
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <PythPriceProvider>{children}</PythPriceProvider>
+        </AppProvider>
       </body>
     </html>
   );

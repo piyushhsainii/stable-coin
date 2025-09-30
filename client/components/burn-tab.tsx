@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,11 @@ import { StableCoin } from "@/build/stable_coin";
 import { PublicKey } from "@solana/web3.js";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { SOL_USDC_FEED_ID } from "@/lib/lib";
+import { Transaction } from "@solana/web3.js";
+import {
+  getAssociatedTokenAddress,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 
 export function BurnTab() {
   const { userState, updateUserState, isLoading, setIsLoading, connection } =
@@ -86,15 +91,28 @@ export function BurnTab() {
       const ix = await program.methods
         .withdrawBurn(new BN(amount))
         .accounts({
-          mint,
+          mint: mint,
           priceUpdate: PRICE_UPDATE,
           tokenProgram: new PublicKey(
             "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
           ),
           withdrawer: wallet.publicKey!,
         })
-        .rpc();
-      console.log(`TxSig`, ix);
+        .instruction();
+
+      const bx = await connection.getLatestBlockhash();
+
+      const tx = new Transaction({
+        feePayer: wallet.publicKey,
+        blockhash: bx.blockhash,
+        lastValidBlockHeight: bx.lastValidBlockHeight,
+      }).add(ix);
+      // const txSig = await connection.simulateTransaction(tx);
+      const signedTx = await wallet.signTransaction!(tx);
+
+      // now simulate the signed transaction
+      const sim = await connection.simulateTransaction(signedTx);
+      console.log(sim.value);
       updateUserState({
         solBalance: userState.solBalance,
         stablecoinBalance: userState.stablecoinBalance - amount,
@@ -146,6 +164,25 @@ export function BurnTab() {
   const handleMaxClick = () => {
     setBurnAmount(userState.stablecoinBalance.toString());
   };
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      const [mint] = PublicKey.findProgramAddressSync(
+        [Buffer.from("jacked_nerd")],
+        new PublicKey(IDL.address)
+      );
+
+      const depositerTokenAcc = await getAssociatedTokenAddress(
+        mint,
+        wallet.publicKey!,
+        false,
+        TOKEN_2022_PROGRAM_ID
+      );
+      console.log(depositerTokenAcc.toString());
+    };
+    fetchAddress();
+  }, []);
+  console.log();
 
   return (
     <div className="space-y-6">

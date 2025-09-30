@@ -22,6 +22,7 @@ pub struct InitDeposit<'info> {
         payer=depositer,
         seeds=[b"collateral_token_account",depositer.key().as_ref()],
         space=0,
+        owner =  System::id(),
         bump
     )]
     pub sol_token_account: AccountInfo<'info>,
@@ -88,7 +89,7 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
    // 3. Get USD equivalent of the provided sol
    let feed_id = get_feed_id_from_hex(SOL_USDC_FEED_ID)?;
    let clock = &mut Clock::get()?;
-   let usd =  pyth.get_price_no_older_than(&clock, 100, &feed_id)?;
+   let usd =  pyth.get_price_no_older_than(&clock, 3600, &feed_id)?;
 
    msg!("price price:{}",usd.price);
    msg!("price exponent:{}",usd.exponent);
@@ -99,6 +100,7 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
    let usd_amount = integer_usd_from_pyth(usd.price, usd.exponent);
    msg!("usd amount:{}",usd_amount);
    let token_amt = lamports_to_usd(amount,usd_amount as u64)?;
+   let final_token_amt = token_amt.checked_mul(config.liq_thx).unwrap().checked_div(10000).unwrap();
 
   //4.Checking HF to ensure safety.
     let new_collateral_amount = collateral.lamports.checked_add(amount).unwrap();
@@ -106,7 +108,7 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
 
    let health_factor = calculate_health_factor(collateral.coins, new_collateral_in_usd, config.liq_thx);
 
-   if health_factor <= 0 {
+   if health_factor < 1 {
         return Err(ErrorCode::HealthFactorError.into());
    }
    // 5. mint tokens to the user
@@ -115,11 +117,11 @@ pub fn process_deposit(ctx: Context<InitDeposit>,amount:u64) -> Result<()> {
          &mut ctx.accounts.token_program_2022,
         &mut ctx.accounts.mint, 
         config.bump_mint_acc, 
-        token_amt
+        final_token_amt
     )?;
    
    // 6. Updating user state
-   collateral.coins = collateral.coins.checked_add(token_amt).unwrap();
+   collateral.coins = collateral.coins.checked_add(final_token_amt).unwrap();
    collateral.lamports = collateral.lamports.checked_add(amount).unwrap();
     Ok(())
 }

@@ -15,18 +15,19 @@ import {
 import { useUserState } from "@/contexts/user-state-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedbackAlert } from "@/components/feedback-alert";
-import { Coins, CoinsIcon, TrendingUp } from "lucide-react";
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
+import { Coins, TrendingUp } from "lucide-react";
+import { PublicKey } from "@solana/web3.js";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
 import IDL from "../../stable_coin/target/idl/stable_coin.json";
 import { StableCoin } from "@/build/stable_coin";
-import { SOL_USDC_FEED_ID } from "@/lib/lib";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import {
   getAssociatedTokenAddress,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
+import { Transaction } from "@solana/web3.js";
+import { usePythPrice } from "@/contexts/pythPrice";
 
 export function DepositTab() {
   const { userState, updateUserState, isLoading, setIsLoading, connection } =
@@ -94,7 +95,6 @@ export function DepositTab() {
         // @ts-ignore
         wallet: wallet,
       });
-
       const PRICE_UPDATE = pyth.getPriceFeedAccountAddress(0, sol_usdc_feed_id);
       const lamport_amount = amount * 1000000000;
       const ix = await program.methods
@@ -108,8 +108,18 @@ export function DepositTab() {
           ),
           depositer: wallet.publicKey,
         })
-        .rpc();
-      console.log(`TxSig`, ix);
+        .instruction();
+
+      const bx = await connection.getLatestBlockhash();
+      const tx = new Transaction({
+        feePayer: wallet.publicKey,
+        blockhash: bx.blockhash,
+        lastValidBlockHeight: bx.lastValidBlockHeight,
+      }).add(ix);
+      // const txSig = await connection.simulateTransaction(tx);
+      const txSig = await wallet.sendTransaction(tx, connection);
+      console.log(`txSig`, txSig);
+      await connection.confirmTransaction(txSig);
       setFeedback({
         type: "success",
         message: `Successfully deposited ${amount} SOL`,
@@ -138,7 +148,7 @@ export function DepositTab() {
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.3);
       }
-      window.location.reload();
+      // window.location.reload();
     } catch (error) {
       console.log(error);
       setFeedback({
@@ -153,14 +163,6 @@ export function DepositTab() {
   const handleMaxClick = () => {
     setDepositAmount(String(balance));
   };
-
-  useEffect(() => {
-    const getMaxBalance = async () => {
-      const balance = await connection.getBalance(wallet.publicKey!);
-      setBalance(balance);
-    };
-    getMaxBalance();
-  }, [wallet.publicKey]);
 
   return (
     <div className="space-y-6">
