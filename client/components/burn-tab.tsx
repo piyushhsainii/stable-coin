@@ -30,8 +30,14 @@ import {
 } from "@solana/spl-token";
 
 export function BurnTab() {
-  const { userState, updateUserState, isLoading, setIsLoading, connection } =
-    useUserState();
+  const {
+    userState,
+    updateUserState,
+    isLoading,
+    setIsLoading,
+    connection,
+    refetch,
+  } = useUserState();
   const wallet = useWallet();
   const [burnAmount, setBurnAmount] = useState("");
   const [feedback, setFeedback] = useState<{
@@ -125,6 +131,7 @@ export function BurnTab() {
         type: "success",
         message: `Successfully burned ${amount.toFixed(2)} stablecoins`,
       });
+      refetch();
       setBurnAmount("");
 
       // Play success sound

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,31 @@ import { useUserState } from "@/contexts/user-state-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedbackAlert } from "@/components/feedback-alert";
 import { AlertTriangle, Zap, Shield } from "lucide-react";
+import { usePythPrice } from "@/contexts/pythPrice";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { BN } from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
+import IDL from "../../stable_coin/target/idl/stable_coin.json";
+import { StableCoin } from "@/build/stable_coin";
+
+interface CollateralAccount {
+  publicKey: PublicKey;
+  account: {
+    depositer: PublicKey;
+    solAccount: PublicKey;
+    coinTokenAccount: PublicKey;
+    isInitialized: boolean;
+    lamports: BN;
+    coins: BN;
+    bump: number;
+    bumpSolAccount: number;
+  };
+}
+
+type AnalyzedCollateral = {
+  account: CollateralAccount;
+  hf: number;
+};
 
 interface BorrowerAccount {
   id: string;
@@ -33,27 +58,89 @@ interface BorrowerAccount {
   isUnhealthy: boolean;
 }
 
-// Mock borrower data
-const mockBorrowers: BorrowerAccount[] = [
-  {
-    id: "1",
-    walletAddress: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-    collateralAmount: 5.2,
-    debtAmount: 480.0,
-    healthFactor: 1.08,
-    isUnhealthy: true,
-  },
-];
+// ---------------------
+// Helpers
+// ---------------------
+
+function getPriceFromUpdate(priceUpdate: any): number {
+  const rawPrice = BigInt(priceUpdate.price.price);
+  const expo = priceUpdate.price.expo;
+  return Number(rawPrice) * 10 ** expo;
+}
+
+function mapToBorrower(
+  analyzed: AnalyzedCollateral,
+  solPriceUSD: number
+): BorrowerAccount {
+  const lamports = analyzed.account.account.lamports.toNumber();
+  const coins = analyzed.account.account.coins.toNumber();
+
+  const collateralSOL = lamports / LAMPORTS_PER_SOL;
+  const debtUSD = coins; // 1 stablecoin = 1 USD
+  const hf = analyzed.hf;
+
+  return {
+    id: analyzed.account.publicKey.toBase58(),
+    walletAddress: analyzed.account.account.depositer.toBase58(),
+    collateralAmount: collateralSOL,
+    debtAmount: debtUSD,
+    healthFactor: hf,
+    isUnhealthy: hf < 1,
+  };
+}
+
+// ---------------------
+// Component
+// ---------------------
 
 export function LiquidateTab() {
-  const { userState, updateUserState, isLoading, setIsLoading } =
-    useUserState();
+  const {
+    userState,
+    updateUserState,
+    isLoading,
+    setIsLoading,
+    connection,
+    riskyAccounts,
+  } = useUserState();
+  const { priceUpdateData } = usePythPrice();
   const [liquidatingId, setLiquidatingId] = useState<string | null>(null);
-  const [borrowers, setBorrowers] = useState<BorrowerAccount[]>(mockBorrowers);
+  const [borrowers, setBorrowers] = useState<BorrowerAccount[]>([]);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    const fetchBorrowers = async () => {
+      if (!priceUpdateData) return;
+
+      try {
+        const solPriceUSD = getPriceFromUpdate(priceUpdateData);
+
+        // @ts-ignore
+        const program: Program<StableCoin> = new Program(IDL, {
+          connection,
+        });
+
+        const collateralAccounts = riskyAccounts;
+        // @ts-ignore
+        const analyzed: AnalyzedCollateral[] = collateralAccounts.map((c) => {
+          const lamports = c.account.account.lamports.toNumber();
+          const coins = c.account.account.coins.toNumber();
+          const collateralUSD = (lamports / LAMPORTS_PER_SOL) * solPriceUSD;
+          const hf = coins > 0 ? collateralUSD / coins : Infinity;
+          return { account: c, hf };
+        });
+
+        const uiBorrowers = analyzed.map((a) => mapToBorrower(a, solPriceUSD));
+        setBorrowers(uiBorrowers);
+      } catch (err) {
+        console.error("Error fetching borrowers:", err);
+      }
+    };
+
+    fetchBorrowers();
+  }, [priceUpdateData, connection]);
 
   const handleLiquidate = async (borrower: BorrowerAccount) => {
     setLiquidatingId(borrower.id);
@@ -61,19 +148,16 @@ export function LiquidateTab() {
     setFeedback(null);
 
     try {
-      // Simulate transaction delay
+      // TODO: replace with actual liquidation ix
       await new Promise((resolve) => setTimeout(resolve, 2500));
 
-      // Mock liquidation logic - liquidator gets 5% bonus
       const liquidationBonus = borrower.collateralAmount * 0.05;
       const liquidatorReward = borrower.collateralAmount + liquidationBonus;
 
-      // Update liquidator's balance
       updateUserState({
         solBalance: userState.solBalance + liquidatorReward,
       });
 
-      // Remove liquidated borrower from list
       setBorrowers((prev) => prev.filter((b) => b.id !== borrower.id));
 
       setFeedback({
@@ -81,38 +165,8 @@ export function LiquidateTab() {
         message: `Successfully liquidated ${borrower.walletAddress.slice(
           0,
           8
-        )}... and earned ${liquidatorReward.toFixed(
-          4
-        )} SOL (including 5% bonus)!`,
+        )}... and earned ${liquidatorReward.toFixed(4)} SOL (5% bonus)!`,
       });
-
-      // Play success sound
-      if (typeof window !== "undefined" && "AudioContext" in window) {
-        const audioContext = new AudioContext();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
-        oscillator.frequency.setValueAtTime(
-          800,
-          audioContext.currentTime + 0.1
-        );
-        oscillator.frequency.setValueAtTime(
-          1000,
-          audioContext.currentTime + 0.2
-        );
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(
-          0.01,
-          audioContext.currentTime + 0.4
-        );
-
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.4);
-      }
     } catch (error) {
       setFeedback({
         type: "error",
@@ -144,6 +198,7 @@ export function LiquidateTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="p-4 rounded-lg bg-muted/20 border border-border/30 text-center">
               <Shield className="h-6 w-6 mx-auto mb-2 text-green-500" />
@@ -168,6 +223,7 @@ export function LiquidateTab() {
             </div>
           </div>
 
+          {/* Table */}
           <div className="rounded-lg border border-border/30 overflow-hidden">
             <Table>
               <TableHeader>

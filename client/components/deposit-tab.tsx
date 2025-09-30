@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,15 +22,10 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import IDL from "../../stable_coin/target/idl/stable_coin.json";
 import { StableCoin } from "@/build/stable_coin";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-import {
-  getAssociatedTokenAddress,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
 import { Transaction } from "@solana/web3.js";
-import { usePythPrice } from "@/contexts/pythPrice";
 
 export function DepositTab() {
-  const { userState, updateUserState, isLoading, setIsLoading, connection } =
+  const { userState, isLoading, setIsLoading, connection, refetch } =
     useUserState();
   const [depositAmount, setDepositAmount] = useState("");
   const [balance, setBalance] = useState(0);
@@ -67,11 +62,6 @@ export function DepositTab() {
       });
       const program: Program<StableCoin> = new Program(IDL, provider);
 
-      const [mint_address] = PublicKey.findProgramAddressSync(
-        [Buffer.from("jacked_nerd")],
-        new PublicKey(IDL.address)
-      );
-
       const [config] = PublicKey.findProgramAddressSync(
         [Buffer.from("config")],
         new PublicKey(IDL.address)
@@ -81,12 +71,6 @@ export function DepositTab() {
         new PublicKey(IDL.address)
       );
 
-      const depositerTokenAcc = await getAssociatedTokenAddress(
-        mint,
-        wallet.publicKey,
-        false,
-        TOKEN_2022_PROGRAM_ID
-      );
       const sol_usdc_feed_id =
         "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
@@ -148,7 +132,7 @@ export function DepositTab() {
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.3);
       }
-      // window.location.reload();
+      refetch();
     } catch (error) {
       console.log(error);
       setFeedback({
@@ -201,7 +185,7 @@ export function DepositTab() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Available: {userState.solBalance.toFixed(4)} SOL
+              Available: {(userState.solBalance / 1000000000).toFixed(4)} SOL
             </p>
           </div>
 

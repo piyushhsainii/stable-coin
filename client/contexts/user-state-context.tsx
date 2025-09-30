@@ -1,8 +1,13 @@
 "use client";
 
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
+import {
+  clusterApiUrl,
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from "@solana/web3.js";
 import {
   createContext,
   useContext,
@@ -12,10 +17,7 @@ import {
 } from "react";
 import IDL from "../../stable_coin/target/idl/stable_coin.json";
 import { StableCoin } from "@/build/stable_coin";
-import {
-  getAssociatedTokenAddress,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
+import { usePythPrice } from "./pythPrice";
 
 interface UserState {
   solBalance: number;
@@ -40,6 +42,11 @@ interface UserStateContextType {
   addTransaction: (transaction: Omit<Transaction, "id" | "timestamp">) => void;
   resetState: () => void;
   connection: Connection;
+  riskyAccounts: {
+    account: CollateralAccount;
+    hf: number;
+  }[];
+  refetch: () => void;
 }
 
 const initialState: UserState = {
@@ -47,6 +54,20 @@ const initialState: UserState = {
   stablecoinBalance: 0,
   totalCollateralDeposited: 0,
 };
+
+interface CollateralAccount {
+  publicKey: PublicKey;
+  account: {
+    depositer: PublicKey;
+    solAccount: PublicKey;
+    coinTokenAccount: PublicKey;
+    isInitialized: boolean;
+    lamports: BN;
+    coins: BN;
+    bump: number;
+    bumpSolAccount: number;
+  };
+}
 
 const UserStateContext = createContext<UserStateContextType | undefined>(
   undefined
@@ -56,7 +77,20 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
   const [userState, setUserState] = useState<UserState>(initialState);
   const [isLoading, setIsLoading] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [riskyAccounts, setriskyAccounts] = useState<
+    {
+      account: CollateralAccount;
+      hf: number;
+    }[]
+  >([]);
   const wallet = useWallet();
+  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+  // @ts-ignore
+  const provider = new AnchorProvider(connection, wallet, {
+    preflightCommitment: "confirmed",
+  });
+
   const updateUserState = (updates: Partial<UserState>) => {
     setUserState((prev) => ({ ...prev, ...updates }));
   };
@@ -69,7 +103,7 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date(),
     };
-    setTransactions((prev) => [newTransaction, ...prev].slice(0, 50)); // Keep only last 50 transactions
+    setTransactions((prev) => [newTransaction, ...prev].slice(0, 50));
   };
 
   const resetState = () => {
@@ -80,79 +114,85 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("solana-stablecoin-transactions");
     }
   };
-  const connection = new Connection(
-    // `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
-    clusterApiUrl("devnet"),
-    "confirmed"
-  );
-  // @ts-ignore
-  const provider = new AnchorProvider(connection, wallet, {
-    preflightCommitment: "confirmed",
-  });
-  useEffect(() => {
-    if (!wallet.publicKey || wallet.publicKey == null) {
-      return;
+
+  // <-- Move this outside useEffect
+  const getUserProfileData = async () => {
+    if (!wallet.publicKey) return;
+
+    const program: Program<StableCoin> = new Program(IDL, provider);
+
+    const [collateralAcc] = PublicKey.findProgramAddressSync(
+      [Buffer.from("collateral"), wallet.publicKey.toBuffer()],
+      new PublicKey(IDL.address)
+    );
+    const [SolCollateralAcc] = PublicKey.findProgramAddressSync(
+      [Buffer.from("collateral_token_account"), wallet.publicKey.toBuffer()],
+      new PublicKey(IDL.address)
+    );
+    const [Mint] = PublicKey.findProgramAddressSync(
+      [Buffer.from("jacked_nerd")],
+      new PublicKey(IDL.address)
+    );
+
+    const { solPriceFeed } = usePythPrice();
+
+    function getPriceFromUpdate(priceUpdate: any): number {
+      const rawPrice = BigInt(priceUpdate.price.price); // raw integer
+      const expo = priceUpdate.price.expo; // exponent (e.g. -8)
+      return Number(rawPrice) * 10 ** expo; // apply scaling
     }
-    const getUserProfileData = async () => {
-      if (!wallet.publicKey || wallet.publicKey == null) {
-        return;
-      }
-      const program: Program<StableCoin> = new Program(IDL, provider);
 
-      // Deriving the collateral
-      const [collateralAcc] = PublicKey.findProgramAddressSync(
-        [Buffer.from("collateral"), wallet.publicKey.toBuffer()],
-        new PublicKey(IDL.address)
-      );
-      // Deriving the sol collateral account
-      const [SolCollateralAcc] = PublicKey.findProgramAddressSync(
-        [Buffer.from("collateral_token_account"), wallet.publicKey.toBuffer()],
-        new PublicKey(IDL.address)
-      );
-      // Deriving Mint Account
-      const [Mint] = PublicKey.findProgramAddressSync(
-        [Buffer.from("jacked_nerd")],
-        new PublicKey(IDL.address)
-      );
-      // Deriving the stable coin token account
-      const depositerTokenAcc = await getAssociatedTokenAddress(
-        Mint,
-        wallet.publicKey,
-        false,
-        TOKEN_2022_PROGRAM_ID
-      );
-      try {
-        const collateralAccInfo = await program.account.collateral.fetch(
-          collateralAcc
-        );
-        console.log(`program info`, collateralAccInfo);
-        console.log(`program coins info`, collateralAccInfo.coins.toNumber());
-        console.log(
-          `program lamports info`,
-          collateralAccInfo.lamports.toNumber()
-        );
-        const solBal = await connection.getBalance(wallet.publicKey);
+    function getUndercollateralizedAccounts(
+      collateralAccounts: CollateralAccount[],
+      priceUpdateData: any
+    ): { account: CollateralAccount; hf: number }[] {
+      const solPriceUSD = getPriceFromUpdate(priceUpdateData);
 
-        setUserState({
-          solBalance: solBal,
-          stablecoinBalance: collateralAccInfo.coins,
-          totalCollateralDeposited: collateralAccInfo.lamports,
-        });
-        updateUserState({
-          solBalance: solBal,
-          stablecoinBalance: collateralAccInfo.coins.toNumber(),
-          totalCollateralDeposited: collateralAccInfo.lamports.toNumber(),
-        });
-      } catch (error) {
-        updateUserState({
-          solBalance: 0,
-          stablecoinBalance: 0,
-          totalCollateralDeposited: 0,
-        });
-        console.log(error);
-      }
-    };
-    getUserProfileData();
+      return collateralAccounts
+        .map((c) => {
+          const collateralValueUSD =
+            (c.account.lamports.toNumber() / LAMPORTS_PER_SOL) * solPriceUSD;
+          const debtUSD = c.account.coins.toNumber(); // 1 coin = 1 USD
+          const hf = debtUSD > 0 ? collateralValueUSD / debtUSD : Infinity;
+          return { account: c, hf };
+        })
+        .filter(({ hf }) => hf < 1);
+    }
+
+    const solPriceUSD = getPriceFromUpdate(solPriceFeed);
+    const collateralAccounts = await program.account.collateral.all();
+
+    const riskyAccoutns = getUndercollateralizedAccounts(
+      collateralAccounts,
+      solPriceUSD
+    );
+    setriskyAccounts(riskyAccoutns);
+    try {
+      const collateralAccInfo = await program.account.collateral.fetch(
+        collateralAcc
+      );
+      const solBal = await connection.getBalance(wallet.publicKey);
+
+      setUserState({
+        solBalance: solBal,
+        stablecoinBalance: collateralAccInfo.coins.toNumber(),
+        totalCollateralDeposited: collateralAccInfo.lamports.toNumber(),
+      });
+    } catch (error) {
+      console.log(error);
+      setUserState({
+        solBalance: 0,
+        stablecoinBalance: 0,
+        totalCollateralDeposited: 0,
+      });
+    }
+  };
+
+  // initial fetch
+  useEffect(() => {
+    if (wallet.connected) {
+      getUserProfileData();
+    }
   }, [wallet.connected, wallet.publicKey]);
 
   return (
@@ -166,6 +206,8 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
         addTransaction,
         resetState,
         connection,
+        riskyAccounts,
+        refetch: getUserProfileData, // <-- function reference
       }}
     >
       {children}
