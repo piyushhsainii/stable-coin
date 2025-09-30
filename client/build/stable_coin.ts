@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/stable_coin.json`.
  */
 export type StableCoin = {
-  "address": "2sQVjGfQRse5n4e8vdJEdfqnsbFQ3YfEawEwmKKkzneS",
+  "address": "9KiLz7DcP447pKUegKzT1xwNbTh5EJwvdVLWkW3QM4Vq",
   "metadata": {
     "name": "stableCoin",
     "version": "0.1.0",
@@ -109,42 +109,99 @@ export type StableCoin = {
           "pda": {
             "seeds": [
               {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
+                "kind": "account",
+                "path": "depositer"
               },
               {
                 "kind": "account",
-                "path": "depositer"
+                "path": "tokenProgram2022"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
         },
         {
-          "name": "config",
-          "writable": true
-        },
-        {
           "name": "mint",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  97,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  110,
+                  101,
+                  114,
+                  100
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -155,6 +212,10 @@ export type StableCoin = {
         },
         {
           "name": "tokenProgram2022"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -199,33 +260,55 @@ export type StableCoin = {
           "pda": {
             "seeds": [
               {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
+                "kind": "account",
+                "path": "liquidator"
               },
               {
                 "kind": "account",
-                "path": "liquidator"
+                "path": "tokenProgram2022"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
               }
-            ]
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
           }
         },
         {
@@ -234,11 +317,46 @@ export type StableCoin = {
             "SAFETY: This account is only used as a recipient for SOL transfers.",
             "The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "mint",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  97,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  110,
+                  101,
+                  114,
+                  100
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -249,6 +367,10 @@ export type StableCoin = {
         },
         {
           "name": "tokenProgram2022"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -331,6 +453,9 @@ export type StableCoin = {
           "address": "SysvarRent111111111111111111111111111111111"
         },
         {
+          "name": "sysvar"
+        },
+        {
           "name": "tokenProgram"
         },
         {
@@ -339,14 +464,6 @@ export type StableCoin = {
         }
       ],
       "args": [
-        {
-          "name": "authority",
-          "type": "pubkey"
-        },
-        {
-          "name": "mintAddress",
-          "type": "pubkey"
-        },
         {
           "name": "liqThx",
           "type": "u64"
@@ -358,10 +475,6 @@ export type StableCoin = {
         {
           "name": "minHealthFactor",
           "type": "u64"
-        },
-        {
-          "name": "bumpMintAcc",
-          "type": "u8"
         },
         {
           "name": "closeFactor",
@@ -439,33 +552,55 @@ export type StableCoin = {
           "pda": {
             "seeds": [
               {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
+                "kind": "account",
+                "path": "withdrawer"
               },
               {
                 "kind": "account",
-                "path": "withdrawer"
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
               }
-            ]
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
           }
         },
         {
@@ -514,7 +649,28 @@ export type StableCoin = {
           }
         },
         {
-          "name": "mint"
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  97,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  110,
+                  101,
+                  114,
+                  100
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "priceUpdate"
@@ -525,6 +681,10 @@ export type StableCoin = {
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -825,7 +985,7 @@ export type StableCoin = {
     {
       "name": "mintseed",
       "type": "bytes",
-      "value": "[109, 105, 110, 116]"
+      "value": "[106, 97, 99, 107, 101, 100, 95, 110, 101, 114, 100]"
     },
     {
       "name": "seed",

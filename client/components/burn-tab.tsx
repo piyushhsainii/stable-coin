@@ -17,9 +17,9 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedbackAlert } from "@/components/feedback-alert";
 import { Flame, TrendingDown } from "lucide-react";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
-import IDL from "../../stable_coin/target/idl/stable_coin.json";
+import IDL from "../build/stable_coin.json";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { StableCoin } from "@/build/stable_coin";
+import { StableCoin } from "../build/stable_coin";
 import { PublicKey } from "@solana/web3.js";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { SOL_USDC_FEED_ID } from "@/lib/lib";
@@ -96,7 +96,7 @@ export function BurnTab() {
       console.log(amount);
       const ix = await program.methods
         .withdrawBurn(new BN(amount))
-        .accounts({
+        .accountsPartial({
           mint: mint,
           priceUpdate: PRICE_UPDATE,
           tokenProgram: new PublicKey(

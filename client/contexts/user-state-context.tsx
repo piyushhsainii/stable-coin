@@ -16,7 +16,7 @@ import {
   type ReactNode,
 } from "react";
 import IDL from "../../stable_coin/target/idl/stable_coin.json";
-import { StableCoin } from "@/build/stable_coin";
+import { StableCoin } from "../build/stable_coin";
 import { usePythPrice } from "./pythPrice";
 
 interface UserState {

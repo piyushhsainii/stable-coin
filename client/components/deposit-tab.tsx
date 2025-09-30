@@ -19,8 +19,8 @@ import { Coins, TrendingUp } from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
-import IDL from "../../stable_coin/target/idl/stable_coin.json";
-import { StableCoin } from "@/build/stable_coin";
+import IDL from "../build/stable_coin.json";
+import { StableCoin } from "../build/stable_coin";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { Transaction } from "@solana/web3.js";
 
@@ -83,7 +83,7 @@ export function DepositTab() {
       const lamport_amount = amount * 1000000000;
       const ix = await program.methods
         .depositAndMintTokens(new BN(lamport_amount))
-        .accounts({
+        .accountsPartial({
           config,
           mint,
           priceUpdate: PRICE_UPDATE,

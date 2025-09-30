@@ -1,5 +1,5 @@
 {
-  "address": "2sQVjGfQRse5n4e8vdJEdfqnsbFQ3YfEawEwmKKkzneS",
+  "address": "9KiLz7DcP447pKUegKzT1xwNbTh5EJwvdVLWkW3QM4Vq",
   "metadata": {
     "name": "stable_coin",
     "version": "0.1.0",
@@ -103,42 +103,99 @@
           "pda": {
             "seeds": [
               {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
+                "kind": "account",
+                "path": "depositer"
               },
               {
                 "kind": "account",
-                "path": "depositer"
+                "path": "token_program_2022"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
         },
         {
-          "name": "config",
-          "writable": true
-        },
-        {
           "name": "mint",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  97,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  110,
+                  101,
+                  114,
+                  100
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -149,6 +206,10 @@
         },
         {
           "name": "token_program_2022"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -193,33 +254,55 @@
           "pda": {
             "seeds": [
               {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
+                "kind": "account",
+                "path": "liquidator"
               },
               {
                 "kind": "account",
-                "path": "liquidator"
+                "path": "token_program_2022"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
               }
-            ]
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
           }
         },
         {
@@ -228,11 +311,46 @@
             "SAFETY: This account is only used as a recipient for SOL transfers.",
             "The seeds ensure that the PDA is derived deterministically and cannot be arbitrarily passed in by the client."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "mint",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  97,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  110,
+                  101,
+                  114,
+                  100
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -243,6 +361,10 @@
         },
         {
           "name": "token_program_2022"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -325,6 +447,9 @@
           "address": "SysvarRent111111111111111111111111111111111"
         },
         {
+          "name": "sysvar"
+        },
+        {
           "name": "token_program"
         },
         {
@@ -333,14 +458,6 @@
         }
       ],
       "args": [
-        {
-          "name": "authority",
-          "type": "pubkey"
-        },
-        {
-          "name": "mint_address",
-          "type": "pubkey"
-        },
         {
           "name": "liq_thx",
           "type": "u64"
@@ -352,10 +469,6 @@
         {
           "name": "min_health_factor",
           "type": "u64"
-        },
-        {
-          "name": "bump_mint_acc",
-          "type": "u8"
         },
         {
           "name": "close_factor",
@@ -433,33 +546,55 @@
           "pda": {
             "seeds": [
               {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
+                "kind": "account",
+                "path": "withdrawer"
               },
               {
                 "kind": "account",
-                "path": "withdrawer"
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
               }
-            ]
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
           }
         },
         {
@@ -508,7 +643,28 @@
           }
         },
         {
-          "name": "mint"
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  97,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  110,
+                  101,
+                  114,
+                  100
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "price_update"
@@ -519,6 +675,10 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -819,7 +979,7 @@
     {
       "name": "MINTSEED",
       "type": "bytes",
-      "value": "[109, 105, 110, 116]"
+      "value": "[106, 97, 99, 107, 101, 100, 95, 110, 101, 114, 100]"
     },
     {
       "name": "SEED",
