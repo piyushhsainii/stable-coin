@@ -148,6 +148,8 @@ export function DepositTab() {
     setDepositAmount(String(balance));
   };
 
+  console.log(userState);
+
   return (
     <div className="space-y-6">
       <Card className="bg-secondary/20 border-border/30">
@@ -188,20 +190,6 @@ export function DepositTab() {
               Available: {(userState.solBalance / 1000000000).toFixed(4)} SOL
             </p>
           </div>
-
-          {depositAmount && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-lg bg-primary/10 border border-primary/20"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Estimated Mint</span>
-              </div>
-            </motion.div>
-          )}
-
           <Button
             onClick={handleDeposit}
             disabled={isLoading}

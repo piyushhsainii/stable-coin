@@ -7,6 +7,7 @@ import {
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { PythPriceProvider } from "@/contexts/pythPrice";
 
 const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
@@ -15,7 +16,9 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <PythPriceProvider>{children}</PythPriceProvider>
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

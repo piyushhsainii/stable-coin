@@ -231,28 +231,6 @@ export function BurnTab() {
               Stablecoins
             </p>
           </div>
-
-          {burnAmount && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-lg bg-destructive/10 border border-destructive/20"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="h-4 w-4 text-destructive" />
-                <span className="text-sm font-medium">
-                  Estimated Withdrawal
-                </span>
-              </div>
-              <p className="text-lg font-semibold text-destructive">
-                {estimatedWithdraw.toFixed(4)} SOL
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Exchange Rate: 100 USD = 1 SOL
-              </p>
-            </motion.div>
-          )}
-
           <div className="p-4 rounded-lg bg-muted/20 border border-border/30">
             <h4 className="text-sm font-medium mb-2">Important Notes</h4>
             <ul className="text-xs text-muted-foreground space-y-1">

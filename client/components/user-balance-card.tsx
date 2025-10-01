@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useUserState } from "@/contexts/user-state-context";
 import { motion } from "framer-motion";
 import { RefreshCw, RotateCcw } from "lucide-react";
+import { getPriceFromUpdate } from "./liquidate-tab";
+import { usePythPrice } from "@/contexts/pythPrice";
+import { useEffect, useState } from "react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 export function UserBalanceCard() {
   const { userState, resetState } = useUserState();
-
+  const [healthRatio, setHealthRatio] = useState(0);
   const balanceItems = [
     {
       label: "SOL Balance",
@@ -26,12 +30,21 @@ export function UserBalanceCard() {
       suffix: "SOL",
     },
   ];
+  const pythPriceContext = usePythPrice();
 
-  const healthRatio =
-    userState.totalCollateralDeposited > 0
-      ? (userState.totalCollateralDeposited * 100 * 0.8) /
-        Math.max(userState.stablecoinBalance, 1)
-      : 0;
+  const calculateHF = async () => {
+    const solPriceUSD = getPriceFromUpdate(pythPriceContext.solPriceFeed);
+    const lamports = userState.totalCollateralDeposited;
+    const coins = userState.stablecoinBalance;
+    const collateralValueUSD = (lamports / LAMPORTS_PER_SOL) * solPriceUSD;
+    const debtUSD = coins;
+    const hf = debtUSD > 0 ? collateralValueUSD / debtUSD : Infinity;
+    setHealthRatio(hf);
+  };
+
+  useEffect(() => {
+    calculateHF();
+  }, []);
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50">

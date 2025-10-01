@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,7 +62,8 @@ interface BorrowerAccount {
 // Helpers
 // ---------------------
 
-function getPriceFromUpdate(priceUpdate: any): number {
+export function getPriceFromUpdate(priceUpdate: any): number {
+  if (!priceUpdate?.price) return 0;
   const rawPrice = BigInt(priceUpdate.price.price);
   const expo = priceUpdate.price.expo;
   return Number(rawPrice) * 10 ** expo;
@@ -76,7 +77,7 @@ function mapToBorrower(
   const coins = analyzed.account.account.coins.toNumber();
 
   const collateralSOL = lamports / LAMPORTS_PER_SOL;
-  const debtUSD = coins; // 1 stablecoin = 1 USD
+  const debtUSD = coins;
   const hf = analyzed.hf;
 
   return {
@@ -94,57 +95,95 @@ function mapToBorrower(
 // ---------------------
 
 export function LiquidateTab() {
-  const {
-    userState,
-    updateUserState,
-    isLoading,
-    setIsLoading,
-    connection,
-    riskyAccounts,
-  } = useUserState();
-  const { priceUpdateData } = usePythPrice();
+  const userStateContext = useUserState();
+  const pythPriceContext = usePythPrice();
+
   const [liquidatingId, setLiquidatingId] = useState<string | null>(null);
   const [borrowers, setBorrowers] = useState<BorrowerAccount[]>([]);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isLiquidating, setIsLiquidating] = useState(false);
 
+  // Use ref to track if we're already fetching
+  const isFetchingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
+  const programRef = useRef<Program<StableCoin> | null>(null);
+
+  // Initialize program only once
+  if (!programRef.current && userStateContext.connection) {
+    programRef.current = new Program<StableCoin>(IDL as any, {
+      connection: userStateContext.connection,
+    });
+  }
+
+  // Fetch liquidatable accounts - only runs once
   useEffect(() => {
-    const fetchBorrowers = async () => {
-      if (!priceUpdateData) return;
+    const program = programRef.current;
+    const solPriceFeed = pythPriceContext.solPriceFeed;
+
+    if (!program || !solPriceFeed) {
+      return;
+    }
+
+    // Skip if already initialized
+    if (hasInitializedRef.current || isFetchingRef.current) {
+      return;
+    }
+
+    const fetchData = async () => {
+      isFetchingRef.current = true;
 
       try {
-        const solPriceUSD = getPriceFromUpdate(priceUpdateData);
+        setFetchError(null);
 
-        // @ts-ignore
-        const program: Program<StableCoin> = new Program(IDL, {
-          connection,
-        });
+        const solPriceUSD = getPriceFromUpdate(solPriceFeed);
+        if (solPriceUSD === 0) {
+          isFetchingRef.current = false;
+          return;
+        }
 
-        const collateralAccounts = riskyAccounts;
-        // @ts-ignore
-        const analyzed: AnalyzedCollateral[] = collateralAccounts.map((c) => {
-          const lamports = c.account.account.lamports.toNumber();
-          const coins = c.account.account.coins.toNumber();
-          const collateralUSD = (lamports / LAMPORTS_PER_SOL) * solPriceUSD;
-          const hf = coins > 0 ? collateralUSD / coins : Infinity;
-          return { account: c, hf };
-        });
+        // Fetch all collateral accounts
+        const collateralAccounts = await program.account.collateral.all();
 
+        // Filter for accounts with debt
+        const analyzed: AnalyzedCollateral[] = collateralAccounts
+          .map((c) => {
+            const lamports = c.account.lamports.toNumber();
+            const coins = c.account.coins.toNumber();
+            const collateralValueUSD =
+              (lamports / LAMPORTS_PER_SOL) * solPriceUSD;
+            const debtUSD = coins;
+            const hf = debtUSD > 0 ? collateralValueUSD / debtUSD : Infinity;
+
+            return { account: c, hf };
+          })
+          .filter(({ hf }) => hf < Infinity);
+
+        // Map to UI format
         const uiBorrowers = analyzed.map((a) => mapToBorrower(a, solPriceUSD));
+
         setBorrowers(uiBorrowers);
-      } catch (err) {
-        console.error("Error fetching borrowers:", err);
+        setIsInitialLoad(false);
+        hasInitializedRef.current = true;
+      } catch (error) {
+        console.error("Error fetching liquidatable accounts:", error);
+        setFetchError("Failed to fetch borrower accounts. Please try again.");
+        setIsInitialLoad(false);
+      } finally {
+        isFetchingRef.current = false;
       }
     };
 
-    fetchBorrowers();
-  }, [priceUpdateData, connection]);
+    fetchData();
+  }, []); // Empty dependency array - only run once
 
   const handleLiquidate = async (borrower: BorrowerAccount) => {
     setLiquidatingId(borrower.id);
-    setIsLoading(true);
+    setIsLiquidating(true);
     setFeedback(null);
 
     try {
@@ -154,8 +193,10 @@ export function LiquidateTab() {
       const liquidationBonus = borrower.collateralAmount * 0.05;
       const liquidatorReward = borrower.collateralAmount + liquidationBonus;
 
-      updateUserState({
-        solBalance: userState.solBalance + liquidatorReward,
+      // Get current balance at time of update
+      const currentBalance = userStateContext.userState.solBalance;
+      userStateContext.updateUserState({
+        solBalance: currentBalance + liquidatorReward,
       });
 
       setBorrowers((prev) => prev.filter((b) => b.id !== borrower.id));
@@ -173,7 +214,7 @@ export function LiquidateTab() {
         message: "Liquidation failed. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsLiquidating(false);
       setLiquidatingId(null);
     }
   };
@@ -183,6 +224,20 @@ export function LiquidateTab() {
   };
 
   const unhealthyCount = borrowers.filter((b) => b.isUnhealthy).length;
+
+  // Show loading state while waiting for price data
+  if (isInitialLoad || !pythPriceContext.solPriceFeed) {
+    return (
+      <Card className="bg-secondary/20 border-border/30">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <LoadingSpinner size="lg" className="mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading price data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -222,6 +277,16 @@ export function LiquidateTab() {
               <p className="text-xl font-semibold text-primary">5%</p>
             </div>
           </div>
+
+          {fetchError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4"
+            >
+              <FeedbackAlert type="error" message={fetchError} />
+            </motion.div>
+          )}
 
           {/* Table */}
           <div className="rounded-lg border border-border/30 overflow-hidden">
@@ -272,7 +337,7 @@ export function LiquidateTab() {
                         <Button
                           size="sm"
                           onClick={() => handleLiquidate(borrower)}
-                          disabled={isLoading}
+                          disabled={isLiquidating}
                           className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                         >
                           {liquidatingId === borrower.id ? (
@@ -299,7 +364,7 @@ export function LiquidateTab() {
             </Table>
           </div>
 
-          {borrowers.length === 0 && (
+          {borrowers.length === 0 && !fetchError && (
             <div className="text-center py-8">
               <Shield className="h-12 w-12 mx-auto mb-4 text-green-500" />
               <p className="text-lg font-semibold text-green-500">
