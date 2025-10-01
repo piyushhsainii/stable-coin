@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AppProvider from "./AppProvider";
 import { PythPriceProvider } from "@/contexts/pythPrice";
-
+import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   title: "SOL-Backed Stablecoin on Solana",
   description:
@@ -62,6 +62,7 @@ export default function RootLayout({
         <AppProvider>
           <PythPriceProvider>{children}</PythPriceProvider>
         </AppProvider>
+        <Analytics />
       </body>
     </html>
   );
