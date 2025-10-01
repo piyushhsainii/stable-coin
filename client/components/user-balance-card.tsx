@@ -38,13 +38,14 @@ export function UserBalanceCard() {
     const coins = userState.stablecoinBalance;
     const collateralValueUSD = (lamports / LAMPORTS_PER_SOL) * solPriceUSD;
     const debtUSD = coins;
-    const hf = debtUSD > 0 ? collateralValueUSD / debtUSD : Infinity;
+    const hf = debtUSD > 0 ? collateralValueUSD / debtUSD : 0;
     setHealthRatio(hf);
   };
 
   useEffect(() => {
+    if (!pythPriceContext) return;
     calculateHF();
-  }, []);
+  }, [pythPriceContext]);
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50">

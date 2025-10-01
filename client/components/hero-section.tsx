@@ -25,7 +25,7 @@ export function HeroSection() {
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center ">
         <div className="animate-fade-in-up">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
             <Zap className="w-4 h-4 text-primary mr-2" />
@@ -34,11 +34,9 @@ export function HeroSection() {
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-balance mb-6">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-balance mb-6 glow-animation py-4">
             The Future of
-            <span className="text-primary block mt-2 glow-animation">
-              Stable Currency
-            </span>
+            <span className="text-primary block mt-2 ">Stable Currency</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground text-balance max-w-3xl mx-auto mb-8 leading-relaxed">
@@ -50,19 +48,11 @@ export function HeroSection() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button
               size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg glow-animation"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg glow-animation cursor-pointer"
               onClick={playHaptic}
             >
               Launch App
               <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="px-8 py-4 text-lg border-primary/20 hover:bg-primary/10 bg-transparent"
-              onClick={playHaptic}
-            >
-              Read Whitepaper
             </Button>
           </div>
 

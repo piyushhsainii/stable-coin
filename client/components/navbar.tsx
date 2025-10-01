@@ -54,31 +54,19 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link href={"/"}>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center glow-animation"></div>
+              <div className="w-8 h-8 bg-primary flex items-center justify-center float-animation rounded-full shadow-md shadow-primary">
+                <img
+                  src="https://apneajyhbpncbciasirk.supabase.co/storage/v1/object/public/nft-storage/aura.jpg"
+                  alt=""
+                  className="h-full w-full rounded-full"
+                />
+              </div>
               <span className="text-xl font-bold text-foreground">
                 Jacked Nerd
               </span>
             </div>
           </Link>
           <div className="hidden md:flex items-center space-x-8">
-            <a
-              href="#features"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Features
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              How it Works
-            </a>
-            <a
-              href="#security"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Security
-            </a>
             <WalletMultiButton
               style={{
                 background: "var(--primary)",
